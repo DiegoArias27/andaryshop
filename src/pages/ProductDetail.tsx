@@ -10,10 +10,8 @@ import { useCart } from '../hooks/useCart'
 import { usePackageBuilder } from '../hooks/usePackageBuilder'
 import { useFavorites } from '../hooks/useFavorites'
 import { useSizePreference } from '../hooks/useSizePreference'
-import { useToast } from '../hooks/useToast'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { getPromo } from '../utils/pricing'
-import { choicePromptMessage } from '../utils/choicePrompt'
 import { buildWhatsappNotifyUrl, buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder } from '../utils/whatsapp'
 import { CheckIcon, HeartIcon, MinusIcon, PlusIcon, TagIcon, WhatsappIcon } from '../components/icons'
 import NotFound from './NotFound'
@@ -58,7 +56,6 @@ function ProductDetail({ slug }: { slug: string }) {
     usePackageBuilder()
   const { isFavorite, toggleFavorite } = useFavorites()
   const { sizeByCategory } = useSizePreference()
-  const { showToast } = useToast()
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const navigate = useNavigate()
   const location = useLocation()
@@ -194,8 +191,10 @@ function ProductDetail({ slug }: { slug: string }) {
   const added = activeVariant !== null && lastAddedVariantId === activeVariant.id
 
   /** Shakes (and illuminates) whichever of SIZE/COLOR still needs an
-   * explicit tap. Returns true if it prompted for something (caller should
-   * stop there instead of proceeding). */
+   * explicit tap — the "elige una talla/color" mention renders inline inside
+   * that same red box (see the option-group JSX below) for as long as it's
+   * shaking, instead of a separate toast. Returns true if it prompted for
+   * something (caller should stop there instead of proceeding). */
   function promptForChoice(): boolean {
     const needsColorPrompt = visibleColorsForSize.length > 1 && !colorTouched
     const needsSizePrompt = visibleSizes.length > 1 && !sizeTouched
@@ -210,8 +209,6 @@ function ProductDetail({ slug }: { slug: string }) {
       window.requestAnimationFrame(() => setShakeColor(true))
       window.setTimeout(() => setShakeColor(false), 900)
     }
-    const message = choicePromptMessage(needsColorPrompt, needsSizePrompt)
-    if (message) showToast(message)
     return true
   }
 
@@ -511,6 +508,7 @@ function ProductDetail({ slug }: { slug: string }) {
         {visibleSizes.length > 0 && (
           <div className={`option-group ${shakeSize ? 'option-group--shake' : ''}`}>
             <span className="option-group__label">TALLA</span>
+            {shakeSize && <p className="option-group__nudge">Elige una talla</p>}
             <div className="sizes">
               {/* A size sold out in every color drops off the list entirely
                   for anyone landing fresh — it only stays visible here while
@@ -539,6 +537,7 @@ function ProductDetail({ slug }: { slug: string }) {
         {visibleColorsForSize.length > 0 && (
           <div className={`option-group ${shakeColor ? 'option-group--shake' : ''}`}>
             <span className="option-group__label">COLOR</span>
+            {shakeColor && <p className="option-group__nudge">Elige un color</p>}
             <div className="swatches">
               {visibleColorsForSize.map((c) => (
                 <button

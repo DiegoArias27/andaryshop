@@ -2637,6 +2637,13 @@ a.hero-banner__layout-el {
   color: var(--gray-600);
 }
 
+.option-group__nudge {
+  margin: -4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+}
+
 .swatches {
   display: flex;
   gap: 10px;
@@ -4100,7 +4107,7 @@ a.hero-banner__layout-el {
 
 .size-modal__quote-promo {
   display: block;
-  margin-top: 12px;
+  margin: 4px 0 16px;
   padding: 10px 12px;
   border-radius: 12px;
   background: var(--gray-50);
@@ -4112,6 +4119,11 @@ a.hero-banner__layout-el {
 
 .size-modal__quote-promo strong {
   color: var(--red);
+}
+
+.size-modal__tutorial-btn {
+  width: 100%;
+  margin-top: 8px;
 }
 
 .toast-stack {

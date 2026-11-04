@@ -1383,7 +1383,7 @@ export default function Catalog() {
     <div className="page page--catalog">
       <Header variant="home" />
 
-      {!activeCategory && !packagesOnly && <SizePreferenceModal categories={categories} />}
+      {!activeCategory && !packagesOnly && <SizePreferenceModal />}
 
       <ProductsSection
         key={packagesOnly ? 'paquetes' : (activeCategory ?? 'all')}

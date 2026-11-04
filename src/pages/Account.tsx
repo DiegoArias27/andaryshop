@@ -1,13 +1,18 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import GoogleSignInButton from '../components/account/GoogleSignInButton'
+import { api } from '../api/client'
+import type { Category } from '../api/types'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useCart } from '../hooks/useCart'
 import { useFavorites } from '../hooks/useFavorites'
+import { useSizePreference } from '../hooks/useSizePreference'
 import { useTheme } from '../hooks/useTheme'
 import type { ThemeMode } from '../context/theme-context'
 import { BackIcon, HeartIcon, CartIcon, SunIcon, MoonIcon, SystemIcon } from '../components/icons'
 import LoadingState from '../components/ui/LoadingState'
+import TutorialChoiceModal from '../components/tour/TutorialChoiceModal'
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/)
@@ -64,6 +69,7 @@ function Profile() {
       </div>
 
       <AppearanceSection />
+      <SizePreferenceSection />
       <TourResetSection />
 
       <button className="btn btn--ghost btn--block" onClick={logout}>
@@ -80,26 +86,82 @@ function AuthGate() {
       <p className="auth-card__subtitle">Inicia sesión con tu cuenta de Google para guardar tu carrito y favoritos.</p>
       <GoogleSignInButton />
       <AppearanceSection />
+      <SizePreferenceSection />
       <TourResetSection />
     </div>
   )
 }
 
+/** Per-category preferred size — used for quick-add's auto-selected size and
+ * to pre-fill the catalog's Talla filter, so the shopper doesn't have to
+ * choose it every time. Used to live only in a first-visit modal (gone now,
+ * replaced by a Cotizador/tutorial promo there); this is its only input now,
+ * saved to this device and, once logged in, synced to the account. */
+function SizePreferenceSection() {
+  const { sizeByCategory, setSizeForCategory } = useSizePreference()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [sizesByCategory, setSizesByCategory] = useState<Record<string, string[]> | null>(null)
+
+  useEffect(() => {
+    Promise.all([api.getCategories(), api.getProducts()])
+      .then(([categoriesData, products]) => {
+        setCategories(categoriesData)
+        const seen: Record<string, Set<string>> = {}
+        for (const p of products) {
+          if (!p.category_slug) continue
+          const set = seen[p.category_slug] ?? (seen[p.category_slug] = new Set())
+          for (const v of p.variants) set.add(v.size)
+        }
+        const result: Record<string, string[]> = {}
+        for (const [slug, sizes] of Object.entries(seen)) result[slug] = [...sizes].sort()
+        setSizesByCategory(result)
+      })
+      .catch(() => setSizesByCategory({}))
+  }, [])
+
+  if (!sizesByCategory) return null
+  const categoriesWithSizes = categories.filter((c) => (sizesByCategory[c.slug]?.length ?? 0) > 0)
+  if (categoriesWithSizes.length === 0) return null
+
+  return (
+    <div className="appearance-card">
+      <h3 className="appearance-card__title">Tu talla por categoría</h3>
+      <p className="size-modal__hint">
+        Así no tienes que elegirla cada vez — se guarda en este dispositivo y, si inicias sesión, en tu cuenta.
+      </p>
+      <div className="size-modal__categories">
+        {categoriesWithSizes.map((c) => (
+          <div key={c.id} className="size-modal__category">
+            <span className="size-modal__category-name">{c.name}</span>
+            <div className="size-modal__sizes">
+              {sizesByCategory[c.slug].map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  className={`size-modal__chip ${sizeByCategory[c.slug] === size ? 'size-modal__chip--active' : ''}`}
+                  onClick={() => setSizeForCategory(c.slug, size)}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function TourResetSection() {
-  function handleReset() {
-    localStorage.removeItem('andary-tour-seen')
-    // A full reload (not react-router navigate) — OnboardingTour has been
-    // mounted since the app started and already read `andary-tour-seen`
-    // into its own state once; only a fresh mount picks up the cleared flag.
-    window.location.href = '/'
-  }
+  const [showChoice, setShowChoice] = useState(false)
 
   return (
     <div className="appearance-card">
       <h3 className="appearance-card__title">¿Necesitas ayuda?</h3>
-      <button type="button" className="btn btn--ghost btn--block" onClick={handleReset}>
+      <button type="button" className="btn btn--ghost btn--block" onClick={() => setShowChoice(true)}>
         Ver el tutorial de nuevo
       </button>
+      {showChoice && <TutorialChoiceModal onClose={() => setShowChoice(false)} />}
     </div>
   )
 }

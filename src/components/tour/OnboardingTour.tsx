@@ -16,6 +16,10 @@ interface BranchCtx {
   clickedPackages: boolean
   productFlowDone: boolean
   packagesFlowDone: boolean
+  /** True for the short Cotizador-only tutorial (launched from the
+   * "Abrir el Cotizador" button) — 'cotizador-summary' ends the tour right
+   * there instead of looping into the full shopping walkthrough. */
+  cotizadorOnly: boolean
 }
 
 interface TourCtx {
@@ -25,6 +29,20 @@ interface TourCtx {
   markProductFlowDone: () => void
   markPackagesFlowDone: () => void
   cancelPackageBuild: () => void
+  /** Re-navigates to whichever /producto/:slug page the tour last visited
+   * (tracked as the shopper moves around) — the "go back to a product page"
+   * fallback for steps like 'favorite' whose target only exists there, when
+   * nothing earlier in the chain navigates there on its own. Returns false
+   * (and navigates nowhere) if the tour never visited one yet. */
+  goToLastProduct: () => boolean
+  /** Called every time the 'cart' step is entered. The first time, it just
+   * remembers what the cart looked like right then. Every time after that
+   * (i.e. "Anterior" brought the shopper back to this step after they'd
+   * already tapped "Añadir al carrito" for real) it removes whatever got
+   * added since, so re-tapping it doesn't pile up a second practice line and
+   * the following steps (which explain THAT ONE item) still match what's
+   * actually in the cart. */
+  resetCartStepPractice: () => void
 }
 
 interface TourStep {
@@ -63,30 +81,54 @@ interface TourStep {
    * and the app navigated), that alone advances the tour, even if the
    * click-listener's own detection somehow missed the click itself. */
   expectPath?: string
+  /** Same safety net as `expectPath`, but matched as a prefix instead of an
+   * exact path — for a destination whose exact URL varies (any
+   * `/producto/:slug`). Covers 'product' on mobile, where a single tap on
+   * the photo doesn't navigate through a plain `<a>` click at all: it's a
+   * deferred `navigate()` call (see ProductCard's double-tap-to-favorite
+   * gesture) that the click-listener below can't tell apart, in the moment,
+   * from a double-tap that only favorites and never navigates anywhere. */
+  expectPathPrefix?: string
   /** Runs once whenever the tour arrives at this step (forward or back). */
   onEnter?: (ctx: TourCtx) => void
   /** Static id, or computed from what was actually clicked / covered so
    * far — the only two branch points are "did they tap a category or
    * Paquetes" and "have they already seen the packages/product flow". */
   next: string | ((ctx: BranchCtx) => string)
-  /** Runs only when "Saltar" is pressed instead of the real click this step
-   * was waiting for — performs whatever essential side effect (almost
-   * always navigation) that real click would otherwise have caused, so the
-   * NEXT step's assumptions about the current page still hold. Without
-   * this, skipping e.g. "toca Paquetes" leaves the shopper on whatever page
-   * they were already on, and the following step ends up spotlighting and
-   * describing THAT page's content while still talking about Paquetes. */
-  onSkip?: (ctx: TourCtx) => void
   /** Where "Saltar" leads, when different from the normal `next` — for a
-   * step whose whole downstream chain assumes the real click's OTHER effect
-   * (not just navigation) really happened, e.g. an item actually landing in
-   * the cart — skipping that makes the next few steps in the normal chain
-   * (which explain that now-nonexistent cart item) meaningless to show at
-   * all, so this jumps straight past them instead. */
+   * gated step, "Saltar" means "skip the rest of THIS SECTION", not just
+   * this one step, so it jumps straight to the first step of whatever
+   * comes after (e.g. skipping anywhere in the shopping flow lands on
+   * Paquetes or Cuenta, never on some half-explained step in between). */
   skipNext?: string | ((ctx: BranchCtx) => string)
+  /** Checked once the target element is actually found on screen — if it
+   * returns true, the step is skipped entirely (straight to `next`) instead
+   * of being shown, e.g. "only one size/color exists, nothing to actually
+   * choose between". */
+  skipIf?: (el: Element) => boolean
+  /** Shown as a toast when `skipIf` triggers, briefly explaining why instead
+   * of skipping in total silence. */
+  skipToast?: string
+  /** Clicks landing inside this never count as the step's real action, even
+   * though they're real clicks on a real element within the hole — for a
+   * target whose hole contains OTHER interactive controls that do something
+   * different from what this step is actually asking for. 'product' is the
+   * case this exists for: its hole is the whole `.product-grid`, so a tap on
+   * a card's own quick-add/favorite/size/color button (all real buttons,
+   * all "inside the hole") would otherwise satisfy the generic "a button or
+   * link was clicked" check below and advance the tour as if the shopper had
+   * opened the product's detail page — when they didn't. */
+  ignoreSelector?: string
 }
 
 const FINISH = 'FINISH'
+
+/** Where "Saltar" lands from anywhere inside the shopping section (product,
+ * size, color, cart, cart-send) — the section right after it, same as
+ * reaching the end of it normally would. */
+function afterShopping(ctx: BranchCtx): string {
+  return ctx.packagesFlowDone ? 'account-nav' : 'packages-nav'
+}
 
 const STEPS: Record<string, TourStep> = {
   intro: {
@@ -111,11 +153,9 @@ const STEPS: Record<string, TourStep> = {
     // page — back to the catalog home first, so the category pills this
     // step spotlights actually exist on screen.
     onEnter: (ctx) => ctx.navigate('/'),
-    // Skipping never "picked" Paquetes (there's no click to read it from) —
-    // land on a real, normal category instead of leaving the shopper on
-    // whatever they had on screen, so 'product' right after finds an actual
-    // product grid to point at.
-    onSkip: (ctx) => ctx.navigate('/?categoria=playeras'),
+    // "Saltar" here skips the whole shopping section, straight to whatever
+    // comes after it — same destination the end of that section reaches.
+    skipNext: afterShopping,
     next: (ctx) => (ctx.clickedPackages ? 'packages-info' : 'product'),
   },
   product: {
@@ -125,15 +165,9 @@ const STEPS: Record<string, TourStep> = {
     text: 'Vas a entrar a su ficha con todos los detalles.',
     action: '👉 Toca cualquier producto que te guste.',
     gated: true,
-    // Skipping the "pick a product" click leaves no product open at all —
-    // 'color' right after only makes sense on a real product page, so this
-    // opens whichever one is first on screen, same destination a real tap
-    // on it would have reached.
-    onSkip: (ctx) => {
-      const firstCard = document.querySelector('.product-grid .product-card')
-      const href = firstCard?.getAttribute('href')
-      if (href) ctx.navigate(href)
-    },
+    // "Saltar" here skips the rest of the shopping section — same as 'cart'
+    // below, there's nothing to show about a product that was never opened.
+    skipNext: afterShopping,
     // If the shopper just practiced starting a real package in
     // "Armando tu paquete", that build could still be active — cancelling
     // it here guarantees the upcoming color/cart steps behave like a normal
@@ -147,20 +181,57 @@ const STEPS: Record<string, TourStep> = {
     // the cart drawer open — closing it too, same as the 'favorite' step
     // does for the other branch, so it doesn't sit on top of the product
     // grid and swallow the very click this step is waiting for.
+    // Also covers "Anterior" from 'color'/'quantity'/'cart' — those never
+    // navigate away on their own, so returning here while still parked on
+    // the product DETAIL page (no .product-grid there at all) used to leave
+    // this step with nothing to spotlight; the explicit check catches that
+    // case too, not just the "came from paquetes" one.
     onEnter: (ctx) => {
       ctx.cancelPackageBuild()
       ctx.closeDrawer()
-      if (window.location.search.includes('paquetes')) ctx.navigate('/?categoria=playeras')
+      if (!document.querySelector('.product-grid')) ctx.navigate('/?categoria=playeras')
     },
+    // A card's own quick-add/favorite/size/color buttons sit inside the same
+    // hole (the whole grid) but don't open the detail page this step is
+    // actually waiting for. The photo itself is ALSO excluded on top of
+    // that — on mobile it's a double-tap-to-favorite gesture, and a single
+    // tap there only navigates after a deferred, async timeout (see
+    // ProductCard's handleMediaClick), which this click-listener can't
+    // distinguish, in the moment, from a double-tap that never navigates at
+    // all. expectPathPrefix below is what actually confirms it, once (and
+    // only if) the detail page really loads.
+    ignoreSelector: 'button, .product-card__media',
+    expectPathPrefix: '/producto/',
+    next: 'size',
+  },
+  size: {
+    id: 'size',
+    selector: '.sizes',
+    title: 'Elige una talla',
+    // Mirrors what "Añadir al carrito" itself actually requires: when there's
+    // more than one size, it needs a real tap — not just whichever one came
+    // pre-selected — or it refuses to add the item and just shakes this same
+    // box. Skipped entirely (see skipIf) when there's only one to begin with.
+    text: 'Ya viene una elegida por defecto, pero si hay más de una tienes que tocarla para confirmarla — si no, no te va a dejar añadir al carrito.',
+    action: '👉 Toca una talla.',
+    gated: true,
+    skipIf: (el) => el.querySelectorAll('.size-btn').length <= 1,
+    skipToast: 'Este producto solo tiene una talla — cuando un producto tenga más, podrás elegirla aquí.',
+    // "Saltar" (pressed on purpose, not via skipIf above) skips the rest of
+    // the shopping section.
+    skipNext: afterShopping,
     next: 'color',
   },
   color: {
     id: 'color',
     selector: '.swatches',
     title: 'Elige un color',
-    text: 'Cada producto ya trae una talla elegida por defecto — puedes cambiarla en la ficha si quieres otra.',
+    text: 'Igual que la talla: si hay más de un color, tócalo para confirmarlo.',
     action: '👉 Toca un color.',
     gated: true,
+    skipIf: (el) => el.querySelectorAll('.swatch').length <= 1,
+    skipToast: 'Este producto solo tiene un color — cuando un producto tenga más, podrás elegirlo aquí.',
+    skipNext: afterShopping,
     next: 'quantity',
   },
   quantity: {
@@ -178,15 +249,17 @@ const STEPS: Record<string, TourStep> = {
     text: 'Mientras más piezas juntes, más baja el precio por unidad.',
     action: '👉 Toca "Añadir al carrito".',
     gated: true,
-    onEnter: (ctx) => ctx.markProductFlowDone(),
+    onEnter: (ctx) => {
+      ctx.markProductFlowDone()
+      ctx.resetCartStepPractice()
+    },
     next: 'cart-drawer-item',
     // Skipping never actually adds anything — the next few steps all
     // explain a cart item that, in that case, doesn't exist (an empty
-    // drawer, no total, no send button to demonstrate), so this jumps
-    // straight past that whole explanation to 'favorite' instead — still the
-    // same product page, and that heart icon has nothing to do with whether
-    // anything got added to the cart.
-    skipNext: 'favorite',
+    // drawer, no total, no send button to demonstrate) — so this skips the
+    // rest of the shopping section entirely, same as the other gated steps
+    // in it.
+    skipNext: afterShopping,
   },
   'cart-drawer-item': {
     id: 'cart-drawer-item',
@@ -222,6 +295,13 @@ const STEPS: Record<string, TourStep> = {
     gated: true,
     intercept: true,
     interceptToast: '✅ Así se enviaría tu pedido — no se mandó nada, esto solo es el tutorial.',
+    // "Anterior" from 'favorite' closes the drawer on ITS OWN onEnter (see
+    // below) — without reopening it here too, coming back lands on a step
+    // whose target lives inside a now-closed drawer, same broken "nothing to
+    // spotlight" state as 'product'/'cotizador'/'favorite'. Safe to call
+    // forward too (opening an already-open drawer is a no-op).
+    onEnter: (ctx) => ctx.openDrawer(),
+    skipNext: afterShopping,
     next: 'favorite',
   },
   favorite: {
@@ -231,7 +311,16 @@ const STEPS: Record<string, TourStep> = {
     text: 'Así lo encuentras después sin tener que buscarlo de nuevo.',
     action: '👉 Toca el corazón para guardarlo.',
     gated: true,
-    onEnter: (ctx) => ctx.closeDrawer(),
+    // "Anterior" can land here from 'packages-nav' or 'account-nav', both of
+    // which navigate elsewhere on their own way in — without getting back to
+    // a product page first, this step's target (.detail-footer) doesn't
+    // exist wherever they left off, same "nothing to spotlight" bug as the
+    // others. goToLastProduct re-opens the same product the shopper was
+    // actually just looking at.
+    onEnter: (ctx) => {
+      ctx.closeDrawer()
+      if (!document.querySelector('.detail-footer')) ctx.goToLastProduct()
+    },
     next: (ctx) => (ctx.packagesFlowDone ? 'account-nav' : 'packages-nav'),
   },
   'packages-nav': {
@@ -242,11 +331,8 @@ const STEPS: Record<string, TourStep> = {
     action: '👉 Toca "Paquetes" arriba.',
     gated: true,
     onEnter: (ctx) => ctx.navigate('/'),
-    // Skipping never taps the real Paquetes pill, so the app never filters
-    // to it — without this, 'packages-info' right after would spotlight
-    // whatever section header happens to be first on the plain home page
-    // and describe it as if it were Paquetes.
-    onSkip: (ctx) => ctx.navigate('/?paquetes=1'),
+    // "Saltar" here skips the whole Paquetes section, straight to Cuenta.
+    skipNext: 'account-nav',
     next: 'packages-info',
   },
   'packages-info': {
@@ -313,11 +399,18 @@ const STEPS: Record<string, TourStep> = {
     expectPath: '/cotizador',
     // Same safety net as 'product' — a lingering real build (from exploring
     // packages, in either branch) shouldn't follow the shopper any further.
-    onEnter: (ctx) => ctx.cancelPackageBuild(),
-    // Skipping never taps the real bubble, so the app never navigates —
-    // without this, 'cotizador-fields' right after would find no
-    // `.cotizador-fields` at all on whatever page the shopper was left on.
-    onSkip: (ctx) => ctx.navigate('/cotizador'),
+    // CotizadorBubble hides itself on the Cotizador page (see its own
+    // comment) — "Anterior" from 'cotizador-fields' lands back here while
+    // STILL on /cotizador, where the bubble this step spotlights doesn't
+    // exist at all, same "nothing to point at" bug as the other steps.
+    onEnter: (ctx) => {
+      ctx.cancelPackageBuild()
+      if (!document.querySelector('[data-tour="cotizador-bubble"]')) ctx.navigate('/')
+    },
+    // "Saltar" here skips the whole Cotizador section (fields/table/summary
+    // included) — straight to normal shopping, or to the end for the
+    // Cotizador-only tutorial, since there'd be nothing left to show it.
+    skipNext: (ctx) => (ctx.cotizadorOnly ? 'outro' : 'category'),
     next: 'cotizador-fields',
   },
   'cotizador-fields': {
@@ -352,8 +445,11 @@ const STEPS: Record<string, TourStep> = {
     // The Cotizador sub-flow runs FIRST (right after intro) — once it's
     // done, on into the normal shopping flow, which merges back to
     // 'account-nav' at the end regardless of which branch (plain product or
-    // packages) the shopper took.
-    next: 'category',
+    // packages) the shopper took. Except in the Cotizador-only tutorial
+    // (launched straight from "Abrir el Cotizador" in the first-visit modal,
+    // see tourMode) — that one ends right here instead, since it was never
+    // meant to also walk through buying something.
+    next: (ctx) => (ctx.cotizadorOnly ? 'outro' : 'category'),
   },
   'account-nav': {
     id: 'account-nav',
@@ -366,11 +462,15 @@ const STEPS: Record<string, TourStep> = {
     action: '👉 Toca el ícono de cuenta.',
     gated: true,
     expectPath: '/cuenta',
-    // Skipping never taps the real icon, so the app never navigates —
-    // without this, 'account-info' right after would find no
-    // `.profile-card`/`.auth-card` at all on whatever page the shopper was
-    // left on.
-    onSkip: (ctx) => ctx.navigate('/cuenta'),
+    // Reached right after a package finishes (packages-completed leaves the
+    // cart drawer open on purpose, to show what got added) — without
+    // closing it here, the drawer overlay sits on top of the account icon
+    // this step points at, both visually and for real clicks. Safe
+    // regardless of path (closing an already-closed drawer is a no-op).
+    onEnter: (ctx) => ctx.closeDrawer(),
+    // "Saltar" here skips the rest of the tour entirely — Cuenta is the last
+    // section before the ending.
+    skipNext: 'outro',
     next: 'account-info',
   },
   'account-info': {
@@ -500,7 +600,15 @@ export default function OnboardingTour() {
 
   const [tourSeen, setTourSeen] = useLocalStorage('andary-tour-seen', false)
   const [ready, setReady] = useState(false)
-  const [stepId, setStepId] = useState('intro')
+  // Set by SizePreferenceModal's "Abrir el Cotizador" button right before it
+  // clears `andary-tour-seen` and reloads — read once here the same way, so
+  // a fresh mount (the only time this component ever re-decides anything)
+  // picks it up. 'full' (the default for every other way the tour starts,
+  // including "Ver tutorial") walks the whole shopping flow as usual.
+  const [tourMode] = useState<'full' | 'cotizador'>(() =>
+    localStorage.getItem('andary-tour-mode') === 'cotizador' ? 'cotizador' : 'full'
+  )
+  const [stepId, setStepId] = useState(tourMode === 'cotizador' ? 'cotizador' : 'intro')
   const [rect, setRect] = useState<DOMRect | null>(null)
   const advancingRef = useRef(false)
   const cartBumpAtPickingStartRef = useRef<number | null>(null)
@@ -511,6 +619,17 @@ export default function OnboardingTour() {
   const initialItemsRef = useRef<CartItem[] | null>(null)
   const initialFavoritesRef = useRef<FavoriteProduct[] | null>(null)
   const initialQuotesRef = useRef<SavedQuote[] | null>(null)
+  // Tracks the most recent /producto/:slug page the tour has been on, so a
+  // step whose target only exists there (favorite) can get back to it when
+  // re-entered via "Anterior" from somewhere that navigated elsewhere in the
+  // meantime — nothing else in the chain remembers which product it was.
+  const lastProductPathRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (location.pathname.startsWith('/producto/')) lastProductPathRef.current = location.pathname
+  }, [location.pathname])
+  // Snapshot of the cart the moment the 'cart' step is (re-)entered — see
+  // resetCartStepPractice below.
+  const cartSnapshotRef = useRef<CartItem[] | null>(null)
 
   // SizePreferenceModal is a separate component with its own localStorage-
   // backed state — reading that key through useLocalStorage here would only
@@ -552,10 +671,11 @@ export default function OnboardingTour() {
   // covers both the very first visit and a replay from Mi cuenta.
   useEffect(() => {
     if (!active) return
-    setStepId('intro')
+    setStepId(tourMode === 'cotizador' ? 'cotizador' : 'intro')
     historyRef.current = []
     productFlowDoneRef.current = false
     packagesFlowDoneRef.current = false
+    cartSnapshotRef.current = null
     initialItemsRef.current = items
     initialFavoritesRef.current = favorites
     initialQuotesRef.current = quotes
@@ -573,6 +693,23 @@ export default function OnboardingTour() {
       packagesFlowDoneRef.current = true
     },
     cancelPackageBuild,
+    goToLastProduct: () => {
+      if (!lastProductPathRef.current) return false
+      navigate(lastProductPathRef.current)
+      return true
+    },
+    resetCartStepPractice: () => {
+      const before = cartSnapshotRef.current
+      if (before === null) {
+        cartSnapshotRef.current = items
+        return
+      }
+      for (const item of items) {
+        const stillThere = before.some((b) => cartLineKey(b) === cartLineKey(item))
+        if (!stillThere) removeItem(item.productId, item.size, item.colorName, item.isGift)
+      }
+      cartSnapshotRef.current = items.filter((item) => before.some((b) => cartLineKey(b) === cartLineKey(item)))
+    },
   }
 
   useEffect(() => {
@@ -596,9 +733,9 @@ export default function OnboardingTour() {
     // settled", so this only ever scrolls once, right when first found.
     const shouldAutoScroll = step.blocking !== false
     // Scrolls once on the first successful measurement, same as before —
-    // but a step entered right after a real navigation (e.g. "Saltar" on a
-    // step whose onSkip just navigated somewhere new) can land on a page
-    // that's still fetching/rendering its real content: the target found
+    // but a step entered right after a real navigation (e.g. "Saltar"
+    // jumping to a step whose onEnter just navigated somewhere new) can
+    // land on a page that's still fetching/rendering its real content: the target found
     // right then may sit at a rect based on a shorter/placeholder layout,
     // and by the time the real content finishes loading (which can happen
     // more than once, and at any point) the element has shifted far from
@@ -615,9 +752,21 @@ export default function OnboardingTour() {
     // none left for a real, later content shift.
     let hasScrolledOnce = false
     let lastScrollAt = 0
+    let skipped = false
     const SCROLL_RETRY_COOLDOWN = 600
     function measure() {
       const el = findVisibleElement(selector)
+      // Checked only once the target is actually found — e.g. "only one
+      // size/color exists, nothing to really choose" (see 'size'/'color').
+      // `skipped` stops the still-running 300ms poll below from calling
+      // goTo again before this effect's cleanup (on the resulting step
+      // change) actually unregisters it.
+      if (el && !skipped && step!.skipIf?.(el)) {
+        skipped = true
+        if (step!.skipToast) showToast(step!.skipToast)
+        goTo(resolveNext(step!, null), step!.id)
+        return
+      }
       const rect = el ? el.getBoundingClientRect() : null
       setRect(rect)
       const offScreen = !!rect && (rect.bottom < 0 || rect.top > window.innerHeight)
@@ -662,6 +811,7 @@ export default function OnboardingTour() {
         clickedPackages: !!clickedEl?.closest('[data-tour="packages-pill"]'),
         productFlowDone: productFlowDoneRef.current,
         packagesFlowDone: packagesFlowDoneRef.current,
+        cotizadorOnly: tourMode === 'cotizador',
       })
     }
     return next
@@ -704,6 +854,7 @@ export default function OnboardingTour() {
       const target = e.target as HTMLElement
       if (target.closest('.tour-tooltip')) return
       if (target.closest('.tour-block')) return
+      if (step!.ignoreSelector && target.closest(step!.ignoreSelector)) return
       if (!target.closest('button, a')) return
       if (step!.intercept) {
         e.preventDefault()
@@ -747,28 +898,38 @@ export default function OnboardingTour() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepId, activeCollection])
 
-  // Arms the expectPath safety net below only when this step is entered
-  // from somewhere that ISN'T already at the destination path. Without this,
-  // stepping "Anterior" back into a gated step whose real click navigates
-  // (account-nav, cotizador) — while the app is still sitting on that same
-  // route, since going back through the TOUR's own history doesn't undo the
-  // real navigation — would see the path already matching and immediately
-  // auto-advance forward again, making "Anterior" look like it does nothing.
+  function matchesExpectedPath(s: TourStep, pathname: string): boolean {
+    if (s.expectPath) return pathname === s.expectPath
+    if (s.expectPathPrefix) return pathname.startsWith(s.expectPathPrefix)
+    return false
+  }
+
+  // Arms the expectPath/expectPathPrefix safety net below only when this
+  // step is entered from somewhere that ISN'T already at the destination
+  // path. Without this, stepping "Anterior" back into a gated step whose
+  // real click navigates (account-nav, cotizador, product) — while the app
+  // is still sitting on that same route, since going back through the
+  // TOUR's own history doesn't undo the real navigation — would see the
+  // path already matching and immediately auto-advance forward again,
+  // making "Anterior" look like it does nothing.
   const expectPathArmedRef = useRef(false)
   useEffect(() => {
     if (!step) return
-    expectPathArmedRef.current = !!step.expectPath && location.pathname !== step.expectPath
+    const hasExpectation = !!step.expectPath || !!step.expectPathPrefix
+    expectPathArmedRef.current = hasExpectation && !matchesExpectedPath(step, location.pathname)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step?.id])
 
-  // Safety net for steps with `expectPath` (account-nav, cotizador): if the
-  // real click already got us to the expected page, that alone is proof
-  // enough to move on, even if the click-listener's own detection somehow
-  // missed the click that caused it.
+  // Safety net for steps with `expectPath`/`expectPathPrefix` (account-nav,
+  // cotizador, product): if the real click already got us to the expected
+  // page, that alone is proof enough to move on, even if the click-
+  // listener's own detection somehow missed the click (or, on 'product',
+  // deliberately ignored it — see `ignoreSelector` — because it couldn't
+  // yet tell whether it would actually navigate).
   useEffect(() => {
-    if (!step?.expectPath || !step.gated) return
+    if ((!step?.expectPath && !step?.expectPathPrefix) || !step.gated) return
     if (!expectPathArmedRef.current) return
-    if (location.pathname !== step.expectPath) return
+    if (!matchesExpectedPath(step, location.pathname)) return
     goTo(resolveNext(step, null), step.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, location.pathname])
@@ -807,7 +968,6 @@ export default function OnboardingTour() {
   }
 
   function skipStep() {
-    step!.onSkip?.(ctx)
     goTo(resolveBranch(step!.skipNext ?? step!.next, null))
   }
 
@@ -846,6 +1006,12 @@ export default function OnboardingTour() {
   // Google sign-in prompt the default text describes.
   if (stepId === 'account-info' && customer) {
     displayText = 'Aquí ves tu perfil, tu carrito y tus favoritos — siempre disponibles en cualquier dispositivo donde inicies sesión.'
+  }
+  // The Cotizador-only tutorial never touches the cart/favorites — only
+  // possibly a saved quote — so the default "comprar"/cart-cleanup wording
+  // doesn't fit what this shorter run actually covered.
+  if (stepId === 'outro' && tourMode === 'cotizador') {
+    displayText = 'Ya sabes usar el Cotizador. Vamos a quitar la cotización de práctica que hayas guardado.'
   }
 
   // The 4-rectangle "hole" — everything except the spotlighted rect is
