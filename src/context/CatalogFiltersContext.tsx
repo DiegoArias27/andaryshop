@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { useSessionStorage } from '../hooks/useSessionStorage'
 import { useSizePreference } from '../hooks/useSizePreference'
 import { CatalogFiltersContext, DEFAULT_CATALOG_FILTERS, type CatalogFilters } from './catalog-filters-context'
@@ -19,6 +19,24 @@ export function CatalogFiltersProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (filters.sizesTouched) return
     setFilters((prev) => (prev.sizesTouched ? prev : { ...prev, sizes: Object.values(sizeByCategory) }))
+  }, [sizeByCategory, filters.sizesTouched, setFilters])
+
+  // `sizesTouched` is one flag for the whole session, not per category — so
+  // without this, picking a size preference in Mi Cuenta for category B
+  // silently never reaches the catalog filter once the shopper had EVER
+  // adjusted the Talla filter for category A, even in an earlier visit.
+  // This catches a genuinely NEW preference (one that wasn't there a moment
+  // ago) and adds it to the filter regardless, without touching anything
+  // the shopper already unchecked themselves.
+  const prevSizeByCategoryRef = useRef(sizeByCategory)
+  useEffect(() => {
+    const prev = prevSizeByCategoryRef.current
+    prevSizeByCategoryRef.current = sizeByCategory
+    if (!filters.sizesTouched) return
+    const prevValues = new Set(Object.values(prev))
+    const newSizes = Object.values(sizeByCategory).filter((s) => !prevValues.has(s))
+    if (newSizes.length === 0) return
+    setFilters((p) => ({ ...p, sizes: [...new Set([...p.sizes, ...newSizes])] }))
   }, [sizeByCategory, filters.sizesTouched, setFilters])
 
   const toggleSize = useCallback(

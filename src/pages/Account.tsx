@@ -11,8 +11,8 @@ import { useSizePreference } from '../hooks/useSizePreference'
 import { useTheme } from '../hooks/useTheme'
 import type { ThemeMode } from '../context/theme-context'
 import { BackIcon, HeartIcon, CartIcon, SunIcon, MoonIcon, SystemIcon } from '../components/icons'
-import LoadingState from '../components/ui/LoadingState'
 import TutorialChoiceModal from '../components/tour/TutorialChoiceModal'
+import AccountSkeleton from '../components/account/AccountSkeleton'
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/)
@@ -209,7 +209,7 @@ export default function Account() {
           <h1>Mi cuenta</h1>
         </div>
 
-        {loading ? <LoadingState /> : customer ? <Profile /> : <AuthGate />}
+        {loading ? <AccountSkeleton /> : customer ? <Profile /> : <AuthGate />}
       </div>
     </div>
   )

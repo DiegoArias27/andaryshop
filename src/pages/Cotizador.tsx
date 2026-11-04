@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Category, Collection, WholesaleTier } from '../api/types'
 import Header from '../components/layout/Header'
-import LoadingState from '../components/ui/LoadingState'
+import CotizadorSkeleton from '../components/product/CotizadorSkeleton'
 import { BackIcon, CheckIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/icons'
 import { plaquePrice } from '../utils/currency'
 import { usePackageBuilder } from '../hooks/usePackageBuilder'
@@ -232,7 +232,7 @@ export default function Cotizador() {
           <h1>Cotizador</h1>
         </div>
 
-        {loading && <LoadingState />}
+        {loading && <CotizadorSkeleton />}
 
         {!loading && (
           <div className="cotizador-grid">
