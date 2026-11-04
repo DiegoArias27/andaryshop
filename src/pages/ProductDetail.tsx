@@ -625,7 +625,7 @@ function ProductDetail({ slug }: { slug: string }) {
                   <CheckIcon /> TE AVISAREMOS
                 </>
               ) : (
-                'AGOTADO · CONSULTAR DISPONIBILIDAD'
+                'AGOTADO · AVISARME'
               )
             ) : added ? (
               <>
@@ -638,7 +638,7 @@ function ProductDetail({ slug }: { slug: string }) {
         )}
         {!buildingForThisProduct && (
           <button className="btn btn--whatsapp btn--sm" onClick={handleQuickOrder}>
-            <WhatsappIcon /> {outOfStock ? 'AVISARME' : 'PEDIR'}
+            <WhatsappIcon /> <span className="btn--whatsapp__label">{outOfStock ? 'AVISARME' : 'PEDIR'}</span>
           </button>
         )}
         <button

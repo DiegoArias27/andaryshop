@@ -77,6 +77,11 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* Without this, iOS Safari's elastic overscroll bounce at the top/bottom
+     of a page briefly reveals whatever is BEHIND it — body's own
+     background, even on a page whose own background differs — which reads
+     as a flash/bar of the wrong color at the edges. */
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -2723,6 +2728,36 @@ a.hero-banner__layout-el {
 
 .detail-footer .btn--primary {
   flex: 1;
+  /* Shares this row with the WhatsApp and favorite buttons, so there's not
+     much width left on a narrow phone — a tighter font-size/padding than
+     the default .btn keeps longer labels ("CONFIRMAR CAMBIOS", etc.) on one
+     line instead of wrapping and making the whole footer taller, down to a
+     320px-wide phone (checked against the longest labels this button ever
+     shows in this 3-button layout). */
+  font-size: 11px;
+  padding: 14px 8px;
+}
+
+@media (min-width: 1024px) {
+  .detail-footer .btn--primary {
+    font-size: 14px;
+    padding: 14px 22px;
+  }
+}
+
+/* The WhatsApp button's "PEDIR"/"AVISARME" text is nice-to-have, but on a
+   narrow phone it eats width the primary "Añadir al carrito" button badly
+   needs — the WhatsApp icon alone is already a clear, recognizable action,
+   so the label only shows once there's enough room for everything to
+   breathe (roughly tablet width and up). */
+.detail-footer .btn--whatsapp__label {
+  display: none;
+}
+
+@media (min-width: 420px) {
+  .detail-footer .btn--whatsapp__label {
+    display: inline;
+  }
 }
 
 .btn--sm {
@@ -3386,7 +3421,9 @@ a.hero-banner__layout-el {
   border: none;
   background: none;
   text-align: center;
-  font-size: 14px;
+  /* 16px minimum — anything smaller makes iOS Safari auto-zoom the whole
+     page when this input gets focused. */
+  font-size: 16px;
   font-weight: 600;
   color: var(--black);
   -moz-appearance: textfield;
@@ -4339,11 +4376,15 @@ a.hero-banner__layout-el {
 
 .qty-stepper--sm span,
 .qty-stepper--sm input {
-  font-size: 13px;
+  /* Stays 16px (see .qty-stepper input) even in this compact variant — a
+     visually smaller stepper isn't worth triggering iOS's auto-zoom. */
+  font-size: 16px;
 }
 
 .qty-stepper--sm input {
-  width: 26px;
+  /* A touch wider than before — needed to fit a 2-digit value now that the
+     font-size matches the non-sm variant instead of being noticeably smaller. */
+  width: 30px;
 }
 
 .cart-drawer__footer {
