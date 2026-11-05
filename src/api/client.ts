@@ -19,6 +19,32 @@ import type { CatalogFilters } from '../context/catalog-filters-context'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
 const CUSTOMER_TOKEN_KEY = 'andary-customer-token'
 
+// The backend already writes most customer-reachable error strings in
+// Spanish (e.g. "Stock insuficiente — …"), which pass straight through
+// as-is below. This only covers the handful that are still raw English
+// (generic CRUD scaffolding, shared with admin-only endpoints, or a
+// catch-all like "Internal server error") — anything a shopper could
+// otherwise see verbatim on a screen like ProductDetail's error state.
+const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
+  'Product not found': 'No encontramos este producto — puede que ya no esté disponible.',
+  'Customer not found': 'No encontramos tu cuenta — intenta iniciar sesión de nuevo.',
+  'idToken is required': 'No se pudo completar el inicio de sesión con Google. Intenta de nuevo.',
+  'items is required': 'Tu carrito está vacío.',
+  'Missing or invalid Authorization header': 'Tu sesión expiró — inicia sesión de nuevo.',
+  'Invalid or expired token': 'Tu sesión expiró — inicia sesión de nuevo.',
+  'Route not found': 'No pudimos conectar con el servidor. Intenta de nuevo en unos segundos.',
+  'Duplicate entry': 'Ya existe un registro con esos datos.',
+  'Internal server error': 'Algo salió mal de nuestro lado. Intenta de nuevo en unos segundos.',
+}
+
+function friendlyStatusMessage(status: number): string {
+  if (status === 401) return 'Tu sesión expiró — inicia sesión de nuevo.'
+  if (status === 404) return 'No encontramos lo que buscabas.'
+  if (status === 429) return 'Demasiados intentos. Espera un momento e intenta de nuevo.'
+  if (status >= 500) return 'Algo salió mal de nuestro lado. Intenta de nuevo en unos segundos.'
+  return 'Ocurrió un error. Intenta de nuevo.'
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem(CUSTOMER_TOKEN_KEY)
   const headers: Record<string, string> = {
@@ -27,11 +53,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers })
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers })
+  } catch {
+    throw new Error('No hay conexión a internet. Revisa tu conexión e intenta de nuevo.')
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.error || `Request failed with status ${res.status}`)
+    const rawMessage = body.error as string | undefined
+    throw new Error((rawMessage && FRIENDLY_ERROR_MESSAGES[rawMessage]) || rawMessage || friendlyStatusMessage(res.status))
   }
 
   if (res.status === 204) return undefined as T

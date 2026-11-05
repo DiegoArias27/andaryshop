@@ -330,7 +330,16 @@ const STEPS: Record<string, TourStep> = {
     text: 'Un paquete junta varias prendas con un precio especial por comprarlas combinadas.',
     action: '👉 Toca "Paquetes" arriba.',
     gated: true,
-    onEnter: (ctx) => ctx.navigate('/'),
+    // "Saltar" from 'cart-send' lands here with the cart drawer still open
+    // (that step opens it to demonstrate "Enviar pedido") — without closing
+    // it, it stays open over the home page and covers this step's own
+    // spotlighted pill, so the tour looks broken and can't actually be
+    // advanced. Reached normally (from 'favorite') it's already closed, so
+    // this is a harmless no-op there.
+    onEnter: (ctx) => {
+      ctx.closeDrawer()
+      ctx.navigate('/')
+    },
     // "Saltar" here skips the whole Paquetes section, straight to Cuenta.
     skipNext: 'account-nav',
     next: 'packages-info',

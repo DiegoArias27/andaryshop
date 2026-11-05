@@ -62,6 +62,14 @@ export default function Hero() {
     return () => clearInterval(timer)
   }, [activeSlides.length])
 
+  // slides === null means the banners request hasn't resolved yet — show a
+  // plain shimmer box instead of fallbackSlide's placeholder art/copy, which
+  // would otherwise flash for a moment on every load before the real
+  // banner (or the genuine "nothing configured" fallback) takes over.
+  if (slides === null) {
+    return <div className="hero-banner skeleton" aria-hidden="true" />
+  }
+
   function handleCtaClick(e: MouseEvent) {
     if (slide.collection_slug) {
       e.preventDefault()
