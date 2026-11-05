@@ -25,6 +25,16 @@ export default function CartDrawer() {
   const navigate = useNavigate()
   const liveProducts = useLiveProducts()
   useBodyScrollLock(drawerOpen)
+  // The cart emptying out while the drawer is still open (the last item
+  // removed, quantity dropped to 0, or every item just got swept into a
+  // sent order) leaves this component rendering null — see the early
+  // return below — with nothing left to ever call closeDrawer(). Left
+  // alone, useBodyScrollLock above keeps the page's scroll locked
+  // indefinitely with no visible drawer left to explain why.
+  useEffect(() => {
+    if (drawerOpen && items.length === 0) closeDrawer()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerOpen, items.length])
   const totalPulse = usePulseDirection(totalPrice)
 
   // Keyed per cart line (not per button) so tapping + or − rings that one
