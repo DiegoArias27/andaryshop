@@ -252,7 +252,7 @@ export default function Cotizador() {
                       <MinusIcon />
                     </button>
                     <input
-                      type="number"
+                      type="number" inputMode="numeric"
                       min="0"
                       value={quantities[type.slug] === 0 ? '' : quantities[type.slug]}
                       placeholder="0"

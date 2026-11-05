@@ -147,7 +147,7 @@ export default function CartDrawer() {
               <MinusIcon />
             </button>
             <input
-              type="number"
+              type="number" inputMode="numeric"
               min={1}
               key={item.quantity}
               defaultValue={item.quantity}

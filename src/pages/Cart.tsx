@@ -160,7 +160,7 @@ export default function Cart() {
                 edit — avoids a controlled input re-rendering (and losing
                 focus) on every keystroke. */}
             <input
-              type="number"
+              type="number" inputMode="numeric"
               min={1}
               key={item.quantity}
               defaultValue={item.quantity}

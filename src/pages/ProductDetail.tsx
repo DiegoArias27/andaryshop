@@ -582,7 +582,7 @@ function ProductDetail({ slug }: { slug: string }) {
               <MinusIcon />
             </button>
             <input
-              type="number"
+              type="number" inputMode="numeric"
               min={1}
               max={activeVariant?.stock ?? undefined}
               value={outOfStock ? 1 : quantity === 0 ? '' : quantity}
