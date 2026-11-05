@@ -397,9 +397,16 @@ img {
   display: none;
 }
 
+/* Always mounted now (not conditionally rendered — see mobileSearchFocus.ts)
+   so a ref to its input exists before the shopper ever opens it; hidden by
+   default and shown only once "Buscar" actually opens it. */
 .toolbar-glass--search-mobile {
-  display: flex;
+  display: none;
   width: 100%;
+}
+
+.toolbar-glass--search-mobile--open {
+  display: flex;
 }
 
 @media (min-width: 1024px) {
@@ -409,7 +416,7 @@ img {
     max-width: 320px;
   }
 
-  .toolbar-glass--search-mobile {
+  .toolbar-glass--search-mobile--open {
     display: none;
   }
 }

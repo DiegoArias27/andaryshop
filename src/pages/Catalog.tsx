@@ -33,6 +33,7 @@ import { productThumb } from '../utils/images'
 import { formatPrice, plaquePrice } from '../utils/currency'
 import { scrimGradient, backgroundSizeFor, useBannerDevice } from '../utils/bannerLayout'
 import { isPackageCollection } from '../utils/collections'
+import { registerMobileSearchInput } from '../utils/mobileSearchFocus'
 import type { ComboPartProgress } from '../context/package-builder-context'
 import type { SizePreferences } from '../context/size-preference-context'
 
@@ -866,6 +867,20 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   const [searchTerm, setSearchTerm] = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
   const mobileSearchOpen = searchParams.get('buscar') === '1'
+  // Registered so BottomNav's "Buscar" button (an unrelated component) can
+  // reach in and focus this synchronously from its own click handler — see
+  // mobileSearchFocus.ts for why that matters on iOS. This effect's own
+  // focus call is the fallback for arriving here from a different page
+  // (nothing to register ahead of time in that case).
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    registerMobileSearchInput(mobileSearchInputRef.current)
+    return () => registerMobileSearchInput(null)
+  }, [])
+  useEffect(() => {
+    if (mobileSearchOpen) mobileSearchInputRef.current?.focus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mobileSearchOpen])
   const [page, setPage] = useState(1)
   // How many cards the home page's "Todos los productos" section shows —
   // grows by SECTION_PREVIEW_CAP each "Ver más" click instead of navigating
@@ -1140,32 +1155,30 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
             )}
           </div>
         </div>
-        {mobileSearchOpen && (
-          <div
-            className={`toolbar-glass toolbar-glass--search toolbar-glass--search-mobile${showHero ? ' toolbar-glass--search-onphoto' : ''}`}
-          >
-            <SearchIcon />
-            <input
-              value={searchTerm}
-              onChange={(e) => handleSearchTermChange(e.target.value)}
-              placeholder="Buscar productos…"
-              autoFocus
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                className="icon-btn toolbar-glass__clear"
-                onClick={() => handleSearchTermChange('')}
-                aria-label="Borrar búsqueda"
-              >
-                <CloseIcon />
-              </button>
-            )}
-            <button className="icon-btn" onClick={closeMobileSearch} aria-label="Cerrar búsqueda">
+        <div
+          className={`toolbar-glass toolbar-glass--search toolbar-glass--search-mobile${mobileSearchOpen ? ' toolbar-glass--search-mobile--open' : ''}${showHero ? ' toolbar-glass--search-onphoto' : ''}`}
+        >
+          <SearchIcon />
+          <input
+            ref={mobileSearchInputRef}
+            value={searchTerm}
+            onChange={(e) => handleSearchTermChange(e.target.value)}
+            placeholder="Buscar productos…"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              className="icon-btn toolbar-glass__clear"
+              onClick={() => handleSearchTermChange('')}
+              aria-label="Borrar búsqueda"
+            >
               <CloseIcon />
             </button>
-          </div>
-        )}
+          )}
+          <button className="icon-btn" onClick={closeMobileSearch} aria-label="Cerrar búsqueda">
+            <CloseIcon />
+          </button>
+        </div>
         {activeChips.length > 0 && (
           <div className="catalog-toolbar__chip-row">
             {activeChips.map((chip) => (

@@ -1,6 +1,7 @@
 import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { AccountIcon, HeartIcon, SearchIcon, ShopIcon } from '../icons'
+import { showAndFocusMobileSearchInput } from '../../utils/mobileSearchFocus'
 
 export default function BottomNav() {
   const { customer } = useCustomerAuth()
@@ -10,7 +11,16 @@ export default function BottomNav() {
   const searchOpen = location.pathname === '/' && searchParams.get('buscar') === '1'
 
   function handleSearchClick() {
-    navigate(searchOpen ? '/' : '/?buscar=1')
+    if (searchOpen) {
+      navigate('/')
+      return
+    }
+    // iOS only opens the keyboard for a focus() still inside this click —
+    // if the search box is already on screen (we're already on the
+    // catalog), grab it and focus it right now instead of waiting for the
+    // navigate() below to reopen it asynchronously. See mobileSearchFocus.ts.
+    showAndFocusMobileSearchInput()
+    navigate('/?buscar=1')
   }
 
   return (
