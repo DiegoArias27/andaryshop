@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../../hooks/useCart'
 import { useCartPricing } from '../../hooks/useCartPricing'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useLiveProducts } from '../../hooks/useLiveProducts'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
+import { usePulseDirection } from '../../hooks/usePulseDirection'
 import { variantStock } from '../../utils/stock'
 import { formatPrice } from '../../utils/currency'
 import { buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder } from '../../utils/whatsapp'
@@ -21,6 +24,21 @@ export default function CartDrawer() {
     breakdown.wholesaleSavings + breakdown.discountSavings + breakdown.collectionSavings + breakdown.customerSavings
   const navigate = useNavigate()
   const liveProducts = useLiveProducts()
+  useBodyScrollLock(drawerOpen)
+  const totalPulse = usePulseDirection(totalPrice)
+
+  // Keyed per cart line (not per button) so tapping + or − rings that one
+  // line's own stepper, not every line at once — cleared a moment later by
+  // the timeout below, same lifetime as the CSS animation it triggers.
+  const [qtyPulse, setQtyPulse] = useState<{ key: string; dir: 'up' | 'down' } | null>(null)
+  useEffect(() => {
+    if (!qtyPulse) return
+    const timer = setTimeout(() => setQtyPulse(null), 500)
+    return () => clearTimeout(timer)
+  }, [qtyPulse])
+  function qtyLineKey(item: CartItem) {
+    return `${item.productId}-${item.size}-${item.colorName}-${item.isGift ? 'gift' : 'paid'}`
+  }
 
   if (items.length === 0) return null
 
@@ -104,9 +122,16 @@ export default function CartDrawer() {
               </p>
             )}
           </Link>
-          <div className="qty-stepper qty-stepper--sm">
+          <div
+            className={`qty-stepper qty-stepper--sm ${
+              qtyPulse?.key === qtyLineKey(item) ? `qty-pulse--${qtyPulse.dir}` : ''
+            }`}
+          >
             <button
-              onClick={() => updateQuantity(item.productId, item.size, item.colorName, item.quantity - 1, item.isGift)}
+              onClick={() => {
+                setQtyPulse({ key: qtyLineKey(item), dir: 'down' })
+                updateQuantity(item.productId, item.size, item.colorName, item.quantity - 1, item.isGift)
+              }}
               aria-label="Restar"
             >
               <MinusIcon />
@@ -119,14 +144,20 @@ export default function CartDrawer() {
               aria-label="Cantidad"
               onBlur={(e) => {
                 const n = Math.max(1, Math.round(Number(e.target.value)) || 1)
-                if (n !== item.quantity) updateQuantity(item.productId, item.size, item.colorName, n, item.isGift)
+                if (n !== item.quantity) {
+                  setQtyPulse({ key: qtyLineKey(item), dir: n > item.quantity ? 'up' : 'down' })
+                  updateQuantity(item.productId, item.size, item.colorName, n, item.isGift)
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
               }}
             />
             <button
-              onClick={() => updateQuantity(item.productId, item.size, item.colorName, item.quantity + 1, item.isGift)}
+              onClick={() => {
+                setQtyPulse({ key: qtyLineKey(item), dir: 'up' })
+                updateQuantity(item.productId, item.size, item.colorName, item.quantity + 1, item.isGift)
+              }}
               aria-label="Sumar"
             >
               <PlusIcon />
@@ -193,7 +224,7 @@ export default function CartDrawer() {
               Incluye descuento de cliente frecuente: -{formatPrice(breakdown.customerSavings)}
             </div>
           )}
-          <div className="cart-total">
+          <div className={`cart-total ${totalPulse ? `qty-pulse--${totalPulse}` : ''}`}>
             <span>Total</span>
             <strong>{formatPrice(totalPrice)}</strong>
           </div>

@@ -82,6 +82,13 @@ body {
      background, even on a page whose own background differs — which reads
      as a flash/bar of the wrong color at the edges. */
   overscroll-behavior-y: none;
+  /* Same idea sideways — without it, a swipe starting near the screen edge
+     while the cart drawer is open (it slides in from the right, so a
+     rightward swipe over it sits right at that edge) can trigger the
+     browser's own swipe-to-go-back gesture, which flashes black/blank mid-
+     gesture before snapping back to the page exactly as it was (the drawer
+     still open) since nothing actually navigated. */
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -3484,6 +3491,34 @@ a.hero-banner__layout-el {
   opacity: 0.6;
 }
 
+/* Brief colored ring confirming a quantity (or total, see .cart-total
+   below) just changed, and which way — see usePulseDirection. */
+@keyframes qty-pulse-up {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+}
+
+@keyframes qty-pulse-down {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 28, 24, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(220, 28, 24, 0);
+  }
+}
+
+.qty-pulse--up {
+  animation: qty-pulse-up 0.5s ease-out;
+}
+
+.qty-pulse--down {
+  animation: qty-pulse-down 0.5s ease-out;
+}
+
 .notes-field {
   display: flex;
   flex-direction: column;
@@ -3787,6 +3822,7 @@ a.hero-banner__layout-el {
   justify-content: center;
   box-shadow: 0 10px 24px rgba(13, 13, 13, 0.3);
   z-index: 26;
+  opacity: 0.82;
 }
 
 .cart-bubble__badge {
@@ -3934,6 +3970,7 @@ a.hero-banner__layout-el {
   justify-content: center;
   box-shadow: 0 10px 24px rgba(13, 13, 13, 0.3);
   z-index: 26;
+  opacity: 0.82;
   animation: cotizador-bubble-ring 4s ease-in-out infinite;
 }
 
@@ -4281,6 +4318,12 @@ a.hero-banner__layout-el {
   box-shadow: 0 20px 60px rgba(var(--shadow-rgb), 0.3);
   transform: translateX(100%);
   transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  /* The drawer sits flush against the right edge — a touch drag starting
+     there easily reads as a horizontal swipe to the browser (its own
+     back/forward-gesture territory, see overscroll-behavior-x on html/body)
+     instead of just scrolling the item list. Restricting this element to
+     vertical panning keeps that gesture from ever starting here. */
+  touch-action: pan-y;
 }
 
 .cart-drawer-overlay--open .cart-drawer {
@@ -4474,6 +4517,7 @@ a.hero-banner__layout-el {
   justify-content: center;
   box-shadow: 0 8px 20px rgba(13, 13, 13, 0.25);
   z-index: 25;
+  opacity: 0.82;
 }
 
 @media (min-width: 1024px) {

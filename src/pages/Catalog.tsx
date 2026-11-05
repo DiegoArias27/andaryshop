@@ -1197,7 +1197,11 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
 
       <div id="catalogo" className="catalog-content">
         {loading && <ProductGridSkeleton />}
-        {error && <p className="state-msg state-msg--error">{error}</p>}
+        {error && (
+          <div className="auth-card" style={{ margin: '24px auto' }}>
+            <p className="state-msg state-msg--error">{error}</p>
+          </div>
+        )}
 
         {!loading &&
           !error &&

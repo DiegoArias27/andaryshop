@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
 import { useCartPricing } from '../hooks/useCartPricing'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useLiveProducts } from '../hooks/useLiveProducts'
+import { usePulseDirection } from '../hooks/usePulseDirection'
 import { variantStock } from '../utils/stock'
 import { formatPrice } from '../utils/currency'
 import { buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder } from '../utils/whatsapp'
@@ -38,6 +39,17 @@ export default function Cart() {
   // total either.
   const breakdown = useMemo(() => buildBreakdown(inStockItems, customerDiscount), [inStockItems, customerDiscount])
   const totalPrice = breakdown.total
+  const totalPulse = usePulseDirection(totalPrice)
+
+  const [qtyPulse, setQtyPulse] = useState<{ key: string; dir: 'up' | 'down' } | null>(null)
+  useEffect(() => {
+    if (!qtyPulse) return
+    const timer = setTimeout(() => setQtyPulse(null), 500)
+    return () => clearTimeout(timer)
+  }, [qtyPulse])
+  function qtyLineKey(item: CartItem) {
+    return `${item.productId}-${item.size}-${item.colorName}-${item.isGift ? 'gift' : 'paid'}`
+  }
 
   async function handleSendOrder() {
     // Opened synchronously (before the await below) so it isn't blocked by
@@ -131,9 +143,14 @@ export default function Cart() {
               <TrashIcon />
             </button>
           </div>
-          <div className="qty-stepper">
+          <div
+            className={`qty-stepper ${qtyPulse?.key === qtyLineKey(item) ? `qty-pulse--${qtyPulse.dir}` : ''}`}
+          >
             <button
-              onClick={() => updateQuantity(item.productId, item.size, item.colorName, item.quantity - 1, item.isGift)}
+              onClick={() => {
+                setQtyPulse({ key: qtyLineKey(item), dir: 'down' })
+                updateQuantity(item.productId, item.size, item.colorName, item.quantity - 1, item.isGift)
+              }}
               aria-label="Restar"
             >
               <MinusIcon />
@@ -150,14 +167,20 @@ export default function Cart() {
               aria-label="Cantidad"
               onBlur={(e) => {
                 const n = Math.max(1, Math.round(Number(e.target.value)) || 1)
-                if (n !== item.quantity) updateQuantity(item.productId, item.size, item.colorName, n, item.isGift)
+                if (n !== item.quantity) {
+                  setQtyPulse({ key: qtyLineKey(item), dir: n > item.quantity ? 'up' : 'down' })
+                  updateQuantity(item.productId, item.size, item.colorName, n, item.isGift)
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
               }}
             />
             <button
-              onClick={() => updateQuantity(item.productId, item.size, item.colorName, item.quantity + 1, item.isGift)}
+              onClick={() => {
+                setQtyPulse({ key: qtyLineKey(item), dir: 'up' })
+                updateQuantity(item.productId, item.size, item.colorName, item.quantity + 1, item.isGift)
+              }}
               aria-label="Sumar"
             >
               <PlusIcon />
@@ -280,7 +303,7 @@ export default function Cart() {
                 )}
               </div>
 
-              <div className="cart-total">
+              <div className={`cart-total ${totalPulse ? `qty-pulse--${totalPulse}` : ''}`}>
                 <span>Total</span>
                 <strong>{formatPrice(totalPrice)}</strong>
               </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Collection, Product, ProductVariant } from '../api/types'
 import { productThumb } from '../utils/images'
@@ -10,6 +10,7 @@ import { useCart } from '../hooks/useCart'
 import { usePackageBuilder } from '../hooks/usePackageBuilder'
 import { useFavorites } from '../hooks/useFavorites'
 import { useSizePreference } from '../hooks/useSizePreference'
+import { usePulseDirection } from '../hooks/usePulseDirection'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { getPromo } from '../utils/pricing'
 import { buildWhatsappNotifyUrl, buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder } from '../utils/whatsapp'
@@ -69,6 +70,7 @@ function ProductDetail({ slug }: { slug: string }) {
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
+  const quantityPulse = usePulseDirection(quantity)
   const [lastAddedVariantId, setLastAddedVariantId] = useState<number | null>(null)
   const [activeImage, setActiveImage] = useState(0)
   const [sizeTouched, setSizeTouched] = useState(false)
@@ -380,7 +382,13 @@ function ProductDetail({ slug }: { slug: string }) {
     return (
       <div className="page page--detail">
         <Header variant="detail" />
-        <p className="state-msg state-msg--error">{error || 'Producto no encontrado.'}</p>
+        <div className="auth-card" style={{ marginTop: 24 }}>
+          <h2 className="auth-card__title">Producto no disponible</h2>
+          <p className="auth-card__subtitle">{error || 'No encontramos este producto.'}</p>
+          <Link to="/" className="btn btn--primary">
+            Volver al catálogo
+          </Link>
+        </div>
       </div>
     )
   }
@@ -565,7 +573,7 @@ function ProductDetail({ slug }: { slug: string }) {
 
         <div className="option-group">
           <span className="option-group__label">CANTIDAD</span>
-          <div className="qty-stepper">
+          <div className={`qty-stepper ${quantityPulse ? `qty-pulse--${quantityPulse}` : ''}`}>
             <button
               onClick={() => setQuantity((q) => Math.max(1, (q || 1) - 1))}
               aria-label="Restar"
