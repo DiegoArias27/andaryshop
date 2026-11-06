@@ -326,11 +326,97 @@ img {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
+  transition: max-width 0.3s ease;
 }
 
+/* Makes room for the Talla/Marca panel sliding open beside it (see
+   .toolbar-glass--filter--open) instead of the two fighting over space. */
+.toolbar-glass--categories--shrunk {
+  max-width: 38%;
+}
+
+/* Collapsed by default — hidden behind the filter-toggle button (see
+   .filter-toggle-btn) instead of always sitting next to the category
+   chips, which is what left Marca cramped into too little width. Slides
+   open via --open; both states keep the panel actually mounted (not
+   conditionally rendered) so this can animate instead of just appearing. */
 .toolbar-glass--filter {
   flex: 0 0 auto;
   gap: 4px;
+  /* Flex items default to min-width: auto (their content's own min-content
+     size) no matter what max-width says — without this override, Talla/
+     Marca's own min-content width would keep forcing this box open-sized
+     even while "collapsed". */
+  min-width: 0;
+  max-width: 0;
+  padding: 0;
+  margin: 0;
+  border-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-width 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+}
+
+.toolbar-glass--filter--open {
+  /* Just enough for the Talla + Marca buttons themselves (~70px each, see
+     .filter-btn) plus this box's own padding/gap — not a guess, so it
+     doesn't crush the category chips any more than it has to. */
+  max-width: 190px;
+  padding: 6px;
+  opacity: 1;
+  pointer-events: auto;
+  /* The collapsed state's overflow: hidden would otherwise clip Talla/
+     Marca's own dropdown panels (absolutely positioned, meant to spill
+     outside this box) once it's open. */
+  overflow: visible;
+}
+
+.filter-toggle-btn {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(var(--white-rgb), 0.7);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border: 1px solid rgba(var(--white-rgb), 0.5);
+  color: var(--black);
+  box-shadow: 0 8px 24px rgba(var(--shadow-rgb), 0.08);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.filter-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.filter-toggle-btn--active {
+  background: var(--black);
+  color: var(--white);
+  border-color: var(--black);
+}
+
+.filter-toggle-btn__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--red);
+  color: var(--white);
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 999px;
+  min-width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 2px solid var(--white);
 }
 
 .toolbar-glass--search {
@@ -3544,7 +3630,9 @@ a.hero-banner__layout-el {
 }
 
 .qty-stepper input {
-  width: 32px;
+  /* Wide enough for 2 digits at the 16px minimum font-size below without
+     looking cramped — 32px was tuned for a single digit. */
+  width: 40px;
   min-width: 0;
   border: none;
   background: none;
@@ -4561,9 +4649,9 @@ a.hero-banner__layout-el {
 }
 
 .qty-stepper--sm input {
-  /* A touch wider than before — needed to fit a 2-digit value now that the
-     font-size matches the non-sm variant instead of being noticeably smaller. */
-  width: 30px;
+  /* Same width as the regular stepper (see .qty-stepper input) — this was
+     still narrower and cramped a 2-digit value. */
+  width: 40px;
 }
 
 .cart-drawer__footer {

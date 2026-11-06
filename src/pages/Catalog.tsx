@@ -20,7 +20,7 @@ import FilterMenu from '../components/product/FilterMenu'
 import SizePreferenceModal from '../components/product/SizePreferenceModal'
 import ProductCard from '../components/product/ProductCard'
 import Pagination from '../components/product/Pagination'
-import { CloseIcon, SearchIcon } from '../components/icons'
+import { CloseIcon, SearchIcon, SlidersIcon } from '../components/icons'
 import ProductGridSkeleton from '../components/product/ProductGridSkeleton'
 import { useCart } from '../hooks/useCart'
 import { usePackageBuilder } from '../hooks/usePackageBuilder'
@@ -865,6 +865,10 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // (route changes, and this section's `key` swap on category change —
   // see CatalogFiltersProvider) instead of resetting every time.
   const { selectedSizes, selectedBrands, toggleSize, toggleBrand, clearFilters } = useCatalogFilters()
+  // Talla/Marca stay collapsed behind the filter-toggle button by default —
+  // showing both alongside the category chips left too little room for
+  // Marca, which could overflow the screen on a long brand name.
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [collections, setCollections] = useState<Collection[]>([])
   const [wholesaleTiers, setWholesaleTiers] = useState<WholesaleTier[]>([])
   const [homePromoBanners, setHomePromoBanners] = useState<Banner[]>([])
@@ -1135,7 +1139,7 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
     >
       <div className="catalog-toolbar__row">
         <div className="catalog-toolbar__main-row">
-          <div className="toolbar-glass toolbar-glass--categories">
+          <div className={`toolbar-glass toolbar-glass--categories ${filtersOpen ? 'toolbar-glass--categories--shrunk' : ''}`}>
             <CategoryPills
               categories={categories}
               activeSlug={category}
@@ -1145,7 +1149,22 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
               highlightSlugs={highlightSlugs}
             />
           </div>
-          <div className="toolbar-glass toolbar-glass--filter" data-tour="filters">
+          <button
+            type="button"
+            className={`filter-toggle-btn ${filtersOpen ? 'filter-toggle-btn--active' : ''}`}
+            onClick={() => setFiltersOpen((v) => !v)}
+            aria-expanded={filtersOpen}
+            aria-label="Filtrar por talla y marca"
+          >
+            <SlidersIcon />
+            {selectedSizes.length + selectedBrands.length > 0 && (
+              <span className="filter-toggle-btn__badge">{selectedSizes.length + selectedBrands.length}</span>
+            )}
+          </button>
+          <div
+            className={`toolbar-glass toolbar-glass--filter ${filtersOpen ? 'toolbar-glass--filter--open' : ''}`}
+            data-tour="filters"
+          >
             <FilterMenu label="Talla" groups={sizeGroups} selected={selectedSizes} onToggle={toggleSize} />
             <FilterMenu label="Marca" options={availableBrands} selected={selectedBrands} onToggle={toggleBrand} />
           </div>

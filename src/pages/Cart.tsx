@@ -176,6 +176,9 @@ export default function Cart() {
               key={item.quantity}
               defaultValue={item.quantity}
               aria-label="Cantidad"
+              onFocus={(e) => {
+                e.target.value = ''
+              }}
               onBlur={(e) => {
                 const max = maxStockFor(item)
                 const n = Math.max(1, Math.min(max, Math.round(Number(e.target.value)) || 1))
