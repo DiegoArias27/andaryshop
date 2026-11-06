@@ -418,25 +418,39 @@ function ProductDetail({ slug }: { slug: string }) {
   const packageMatches = packagesFor(product)
 
   // Home and Paquetes each have their own independent curated layout (see
-  // "Orden de Inicio"/"Orden de Paquetes" in admin) — a package collection
-  // only actually renders on ONE of them, decided by show_on_home. Jumping
-  // to "/" regardless sent the customer to Home even for a package that
-  // only lives on the Paquetes page, where the #collection-… hash target
-  // never exists and the page just sits at the top.
-  function collectionPath(slug: string, showOnHome: boolean) {
-    return showOnHome ? `/#collection-${slug}` : `/?paquetes=1#collection-${slug}`
+  // "Orden de Inicio"/"Orden de Paquetes" in admin) — a collection's own
+  // show_on_home flag only seeds that list the first time it's ever
+  // touched; the admin can freely add/remove collections from either page
+  // afterward without it changing, so it can't be trusted as "this is
+  // where the collection actually renders" on its own. Asking the Paquetes
+  // layout itself whether this collection is in it is the only way to
+  // know for sure — falling back to Home (the more common case) if not.
+  async function collectionPath(slug: string, collectionId: number) {
+    try {
+      const packagesLayout = await api.getPageLayout('packages')
+      if (packagesLayout.some((e) => e.type === 'collection' && e.id === collectionId)) {
+        return `/?paquetes=1#collection-${slug}`
+      }
+    } catch {
+      // Fall through to the Home guess below.
+    }
+    return `/#collection-${slug}`
   }
 
-  function handlePromoClick(e: MouseEvent) {
+  async function handlePromoClick(e: MouseEvent) {
     if (!promo || promo.type !== 'bundle') return
     e.preventDefault()
     const collection = packageMatches.find((c) => c.slug === promo.collectionSlug)
-    navigate(collectionPath(promo.collectionSlug, collection ? !!collection.show_on_home : true))
+    if (!collection) {
+      navigate(`/#collection-${promo.collectionSlug}`)
+      return
+    }
+    navigate(await collectionPath(collection.slug, collection.id))
   }
 
-  function handlePackageBadgeClick(e: MouseEvent, collection: Collection) {
+  async function handlePackageBadgeClick(e: MouseEvent, collection: Collection) {
     e.preventDefault()
-    navigate(collectionPath(collection.slug, !!collection.show_on_home))
+    navigate(await collectionPath(collection.slug, collection.id))
   }
 
   return (
