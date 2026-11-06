@@ -1236,11 +1236,6 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
             </section>
           ) : packagesOnly ? (
             <>
-              <div className="section__header">
-                <div>
-                  <h2>Paquetes</h2>
-                </div>
-              </div>
               {pageLayout?.map((entry) => {
                 if (entry.type === 'banner') {
                   const b = packagesPromoBanners.find((x) => x.id === entry.id)

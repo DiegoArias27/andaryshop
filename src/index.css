@@ -308,7 +308,12 @@ img {
 .toolbar-glass {
   display: flex;
   align-items: center;
-  background: rgba(var(--white-rgb), 0.32);
+  /* In dark mode --white-rgb is a near-black card color (see :root dark
+     theme vars above), so at the old 0.32 this read as a barely-there dark
+     smudge against the similarly dark page background instead of a solid
+     pill bar — bumped to match the header's own glass strength (.header
+     above uses 0.7 of the same variable). */
+  background: rgba(var(--white-rgb), 0.7);
   backdrop-filter: blur(24px) saturate(1.8);
   -webkit-backdrop-filter: blur(24px) saturate(1.8);
   border: 1px solid rgba(var(--white-rgb), 0.5);
@@ -1682,7 +1687,12 @@ a.hero-banner__layout-el {
   display: block;
   border-radius: 14px;
   overflow: hidden;
-  min-height: 170px;
+  /* Fixed to the same 2.2:1 shape the admin's crop editor previews
+     (CATEGORY_TILE_RATIO in admin/src/pages/Categories.tsx) — without this,
+     the grid stretched every tile in a row to match its tallest sibling
+     (longer tagline = taller row = taller tile), so the live shape almost
+     never matched what the admin saw while positioning the photo. */
+  aspect-ratio: 2.2 / 1;
   background-color: #1c1c1e;
   background-size: cover;
   background-position: center;
