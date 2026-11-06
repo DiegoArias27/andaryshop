@@ -30,9 +30,22 @@ export default function CategoryPills({
   // snapped the row's scroll back to the very start even when the pill you
   // just picked was further along — scroll it back into view every time
   // the active one changes instead of leaving that to chance.
+  //
+  // Done by hand (scrollLeft on this row specifically) rather than calling
+  // the active pill's own .scrollIntoView() — that call can decide to
+  // scroll ANY scrollable ancestor, including the whole page, and right
+  // after a remount (before the sticky toolbar above has "caught up") it
+  // was doing exactly that, yanking the page back up whenever the newly
+  // active pill needed horizontal scrolling (Playeras, Paquetes — not
+  // Inicio, which never needs to scroll).
   useEffect(() => {
-    const active = scrollRef.current?.querySelector('.pill--active')
-    active?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    const container = scrollRef.current
+    const active = container?.querySelector<HTMLElement>('.pill--active')
+    if (!container || !active) return
+    const containerRect = container.getBoundingClientRect()
+    const activeRect = active.getBoundingClientRect()
+    const delta = activeRect.left - containerRect.left - (containerRect.width - activeRect.width) / 2
+    container.scrollBy({ left: delta, behavior: 'smooth' })
   }, [activeSlug, packagesActive])
 
   return (

@@ -417,25 +417,26 @@ function ProductDetail({ slug }: { slug: string }) {
   // "Elige tus productos" does that).
   const packageMatches = packagesFor(product)
 
+  // Home and Paquetes each have their own independent curated layout (see
+  // "Orden de Inicio"/"Orden de Paquetes" in admin) — a package collection
+  // only actually renders on ONE of them, decided by show_on_home. Jumping
+  // to "/" regardless sent the customer to Home even for a package that
+  // only lives on the Paquetes page, where the #collection-… hash target
+  // never exists and the page just sits at the top.
+  function collectionPath(slug: string, showOnHome: boolean) {
+    return showOnHome ? `/#collection-${slug}` : `/?paquetes=1#collection-${slug}`
+  }
+
   function handlePromoClick(e: MouseEvent) {
     if (!promo || promo.type !== 'bundle') return
     e.preventDefault()
-    const target = document.getElementById(`collection-${promo.collectionSlug}`)
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    } else {
-      navigate(`/#collection-${promo.collectionSlug}`)
-    }
+    const collection = packageMatches.find((c) => c.slug === promo.collectionSlug)
+    navigate(collectionPath(promo.collectionSlug, collection ? !!collection.show_on_home : true))
   }
 
-  function handlePackageBadgeClick(e: MouseEvent, slug: string) {
+  function handlePackageBadgeClick(e: MouseEvent, collection: Collection) {
     e.preventDefault()
-    const target = document.getElementById(`collection-${slug}`)
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    } else {
-      navigate(`/#collection-${slug}`)
-    }
+    navigate(collectionPath(collection.slug, !!collection.show_on_home))
   }
 
   return (
@@ -500,7 +501,7 @@ function ProductDetail({ slug }: { slug: string }) {
                     key={c.id}
                     type="button"
                     className="detail-package-chip"
-                    onClick={(e) => handlePackageBadgeClick(e, c.slug)}
+                    onClick={(e) => handlePackageBadgeClick(e, c)}
                   >
                     {c.name}
                   </button>

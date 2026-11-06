@@ -824,6 +824,19 @@ const CATEGORY_TAGLINES: Record<string, string> = {
 }
 
 function ProductsSection({ category, categoryName, categories, onSelectCategory, packagesOnly, onSelectPackages }: ProductsSectionProps) {
+  // This component remounts (fresh mount, not just a re-render) whenever
+  // the active category/Paquetes changes — see its `key` in Catalog below —
+  // but remounting never touches the browser's own scroll position, so
+  // arriving here from a link/button while scrolled halfway down a
+  // previous page rendered the new section at that same scroll instead of
+  // the top. Skipped when a #collection-… hash is present: that case is
+  // its own intentional scroll-to-that-section (see the hash effect below),
+  // not a fresh section view that should reset to the top.
+  useEffect(() => {
+    if (window.location.hash) return
+    window.scrollTo(0, 0)
+  }, [])
+
   // The toolbar floats over the hero banner (see showHero below) via a
   // negative margin-bottom equal to its own rendered height, so the next
   // sibling (Hero) starts flush at the same y position instead of after the

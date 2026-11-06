@@ -3154,6 +3154,7 @@ a.hero-banner__layout-el {
 .cotizador-table__cell--active {
   background: var(--red) !important;
   border-left-color: var(--white) !important;
+  color: var(--white) !important;
 }
 
 .cotizador-table__range {
