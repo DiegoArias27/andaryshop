@@ -6,6 +6,7 @@ import { useCustomerAuth } from '../../hooks/useCustomerAuth'
 import { useLiveProducts } from '../../hooks/useLiveProducts'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import { usePulseDirection } from '../../hooks/usePulseDirection'
+import { useToast } from '../../hooks/useToast'
 import { variantStock } from '../../utils/stock'
 import { formatPrice } from '../../utils/currency'
 import { buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder } from '../../utils/whatsapp'
@@ -24,6 +25,7 @@ export default function CartDrawer() {
     breakdown.wholesaleSavings + breakdown.discountSavings + breakdown.collectionSavings + breakdown.customerSavings
   const navigate = useNavigate()
   const liveProducts = useLiveProducts()
+  const { showToast } = useToast()
   useBodyScrollLock(drawerOpen)
   // The cart emptying out while the drawer is still open (the last item
   // removed, quantity dropped to 0, or every item just got swept into a
@@ -164,6 +166,7 @@ export default function CartDrawer() {
               onBlur={(e) => {
                 const max = maxStockFor(item)
                 const n = Math.max(1, Math.min(max, Math.round(Number(e.target.value)) || 1))
+                if (Number(e.target.value) > max) showToast('Ya no hay más piezas disponibles.')
                 if (n !== item.quantity) {
                   setQtyPulse({ key: qtyLineKey(item), dir: n > item.quantity ? 'up' : 'down' })
                   updateQuantity(item.productId, item.size, item.colorName, n, item.isGift)
@@ -176,13 +179,17 @@ export default function CartDrawer() {
               }}
             />
             <button
+              className={item.quantity >= maxStockFor(item) ? 'qty-stepper__btn--disabled' : ''}
               onClick={() => {
                 const max = maxStockFor(item)
-                if (item.quantity >= max) return
+                if (item.quantity >= max) {
+                  showToast('Ya no hay más piezas disponibles.')
+                  return
+                }
                 setQtyPulse({ key: qtyLineKey(item), dir: 'up' })
                 updateQuantity(item.productId, item.size, item.colorName, item.quantity + 1, item.isGift)
               }}
-              disabled={item.quantity >= maxStockFor(item)}
+              aria-disabled={item.quantity >= maxStockFor(item)}
               aria-label="Sumar"
             >
               <PlusIcon />

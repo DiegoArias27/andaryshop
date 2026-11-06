@@ -3526,6 +3526,16 @@ a.hero-banner__layout-el {
   background: var(--gray-100);
 }
 
+/* Not a real :disabled button — it still needs to receive the click so a
+   toast can explain why (no more stock), not just silently do nothing. */
+.qty-stepper__btn--disabled {
+  opacity: 0.4;
+}
+
+.qty-stepper__btn--disabled:hover {
+  background: none;
+}
+
 .qty-stepper span {
   min-width: 16px;
   text-align: center;

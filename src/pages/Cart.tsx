@@ -5,6 +5,7 @@ import { useCartPricing } from '../hooks/useCartPricing'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useLiveProducts } from '../hooks/useLiveProducts'
 import { usePulseDirection } from '../hooks/usePulseDirection'
+import { useToast } from '../hooks/useToast'
 import { variantStock } from '../utils/stock'
 import { formatPrice } from '../utils/currency'
 import { buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder } from '../utils/whatsapp'
@@ -23,6 +24,7 @@ export default function Cart() {
   const [notes, setNotes] = useState('')
   const navigate = useNavigate()
   const liveProducts = useLiveProducts()
+  const { showToast } = useToast()
 
   // Stock can run out after an item was already added to the cart — check
   // live stock rather than trusting the `preorder` flag frozen at add-time.
@@ -177,6 +179,7 @@ export default function Cart() {
               onBlur={(e) => {
                 const max = maxStockFor(item)
                 const n = Math.max(1, Math.min(max, Math.round(Number(e.target.value)) || 1))
+                if (Number(e.target.value) > max) showToast('Ya no hay más piezas disponibles.')
                 if (n !== item.quantity) {
                   setQtyPulse({ key: qtyLineKey(item), dir: n > item.quantity ? 'up' : 'down' })
                   updateQuantity(item.productId, item.size, item.colorName, n, item.isGift)
@@ -189,13 +192,17 @@ export default function Cart() {
               }}
             />
             <button
+              className={item.quantity >= maxStockFor(item) ? 'qty-stepper__btn--disabled' : ''}
               onClick={() => {
                 const max = maxStockFor(item)
-                if (item.quantity >= max) return
+                if (item.quantity >= max) {
+                  showToast('Ya no hay más piezas disponibles.')
+                  return
+                }
                 setQtyPulse({ key: qtyLineKey(item), dir: 'up' })
                 updateQuantity(item.productId, item.size, item.colorName, item.quantity + 1, item.isGift)
               }}
-              disabled={item.quantity >= maxStockFor(item)}
+              aria-disabled={item.quantity >= maxStockFor(item)}
               aria-label="Sumar"
             >
               <PlusIcon />
