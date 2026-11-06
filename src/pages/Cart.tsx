@@ -31,6 +31,14 @@ export default function Cart() {
     return live !== null ? live <= 0 : !!item.preorder
   }
 
+  // Infinity (not blocked) while live stock hasn't loaded yet, rather than
+  // guessing — this only ever caps once we actually know the real number,
+  // same source isOutOfStock already trusts.
+  function maxStockFor(item: CartItem): number {
+    const live = variantStock(liveProducts, item.productId, item.size, item.colorName)
+    return live ?? Infinity
+  }
+
   const inStockItems = pricedItems.filter((p) => !isOutOfStock(p.item))
   const outOfStockItems = pricedItems.filter((p) => isOutOfStock(p.item))
   // Subtotal/total shown here must reflect only what will actually be
@@ -162,14 +170,18 @@ export default function Cart() {
             <input
               type="number" inputMode="numeric"
               min={1}
+              max={Number.isFinite(maxStockFor(item)) ? maxStockFor(item) : undefined}
               key={item.quantity}
               defaultValue={item.quantity}
               aria-label="Cantidad"
               onBlur={(e) => {
-                const n = Math.max(1, Math.round(Number(e.target.value)) || 1)
+                const max = maxStockFor(item)
+                const n = Math.max(1, Math.min(max, Math.round(Number(e.target.value)) || 1))
                 if (n !== item.quantity) {
                   setQtyPulse({ key: qtyLineKey(item), dir: n > item.quantity ? 'up' : 'down' })
                   updateQuantity(item.productId, item.size, item.colorName, n, item.isGift)
+                } else if (String(n) !== e.target.value) {
+                  e.target.value = String(n)
                 }
               }}
               onKeyDown={(e) => {
@@ -178,9 +190,12 @@ export default function Cart() {
             />
             <button
               onClick={() => {
+                const max = maxStockFor(item)
+                if (item.quantity >= max) return
                 setQtyPulse({ key: qtyLineKey(item), dir: 'up' })
                 updateQuantity(item.productId, item.size, item.colorName, item.quantity + 1, item.isGift)
               }}
+              disabled={item.quantity >= maxStockFor(item)}
               aria-label="Sumar"
             >
               <PlusIcon />
