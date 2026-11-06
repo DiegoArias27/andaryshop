@@ -19,8 +19,10 @@ export default function CartBubble() {
         <span className="cart-bubble__spark cart-bubble__spark--5">✦</span>
         <span className="cart-bubble__spark cart-bubble__spark--6">✦</span>
       </span>
-      <CartIcon />
-      <span className="cart-bubble__badge">{totalItems}</span>
+      <span className="cart-bubble__icon-wrap">
+        <CartIcon />
+        <span className="cart-bubble__badge">{totalItems}</span>
+      </span>
       <span className="cart-bubble__total">{plaquePrice(totalPrice)}</span>
     </button>
   )

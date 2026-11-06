@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 
 interface FilterGroup {
   label: string
+  /** The group's category slug, passed back through onToggle so a checked
+   * box can be saved as that category's size preference — omit for a
+   * group that isn't a real category (onToggle then gets no slug). */
+  slug?: string
   options: string[]
 }
 
@@ -13,7 +17,7 @@ interface FilterMenuProps {
    * category) — takes priority over `options` when both are given. */
   groups?: FilterGroup[]
   selected: string[]
-  onToggle: (value: string) => void
+  onToggle: (value: string, groupSlug?: string) => void
 }
 
 export default function FilterMenu({ label, options, groups, selected, onToggle }: FilterMenuProps) {
@@ -46,7 +50,7 @@ export default function FilterMenu({ label, options, groups, selected, onToggle 
                   <span className="filter-menu__group-label">{group.label}</span>
                   {group.options.map((opt) => (
                     <label key={opt} className="filter-check">
-                      <input type="checkbox" checked={selected.includes(opt)} onChange={() => onToggle(opt)} />
+                      <input type="checkbox" checked={selected.includes(opt)} onChange={() => onToggle(opt, group.slug)} />
                       <span>{opt}</span>
                     </label>
                   ))}

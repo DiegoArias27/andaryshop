@@ -11,7 +11,7 @@ import { CatalogFiltersContext, DEFAULT_CATALOG_FILTERS, type CatalogFilters } f
  * AccountSync, same pattern as saved Cotizador quotes. */
 export function CatalogFiltersProvider({ children }: { children: ReactNode }) {
   const [filters, setFilters] = useSessionStorage<CatalogFilters>('andary-catalog-filters', DEFAULT_CATALOG_FILTERS)
-  const { sizeByCategory, replaceSizePreferences } = useSizePreference()
+  const { sizeByCategory, setSizeForCategory, replaceSizePreferences } = useSizePreference()
 
   // Whatever was saved in the "para mayor experiencia" size modal is applied
   // here too, by default — a real, adjustable filter, not just a quick-add
@@ -40,7 +40,7 @@ export function CatalogFiltersProvider({ children }: { children: ReactNode }) {
   }, [sizeByCategory, filters.sizesTouched, setFilters])
 
   const toggleSize = useCallback(
-    (size: string) => {
+    (size: string, categorySlug?: string) => {
       setFilters((prev) => {
         const removing = prev.sizes.includes(size)
         if (removing) {
@@ -51,11 +51,17 @@ export function CatalogFiltersProvider({ children }: { children: ReactNode }) {
           if (Object.keys(remaining).length !== Object.keys(sizeByCategory).length) {
             replaceSizePreferences(remaining)
           }
+        } else if (categorySlug) {
+          // Checking a size here is just as much a statement of preference
+          // as picking one in Mi Cuenta — save it the same way, so it syncs
+          // to the account (see AccountSync) instead of only ever living in
+          // this session's filter state.
+          setSizeForCategory(categorySlug, size)
         }
         return { ...prev, sizesTouched: true, sizes: removing ? prev.sizes.filter((s) => s !== size) : [...prev.sizes, size] }
       })
     },
-    [setFilters, sizeByCategory, replaceSizePreferences]
+    [setFilters, sizeByCategory, setSizeForCategory, replaceSizePreferences]
   )
 
   const toggleBrand = useCallback(

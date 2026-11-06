@@ -15,7 +15,11 @@ export interface CatalogFiltersContextValue {
   filters: CatalogFilters
   selectedSizes: string[]
   selectedBrands: string[]
-  toggleSize: (size: string) => void
+  /** `categorySlug`, when given, is also saved as that category's preferred
+   * size (see SizePreferenceContext) — only on checking a box, never on
+   * unchecking one (toggleSize already clears the preference on removal
+   * regardless of which category it came from). */
+  toggleSize: (size: string, categorySlug?: string) => void
   toggleBrand: (brand: string) => void
   clearFilters: () => void
   /** Replaces the whole filter state at once — used to hydrate from/reset an account's saved state. */

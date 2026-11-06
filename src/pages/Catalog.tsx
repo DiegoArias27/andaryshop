@@ -985,15 +985,17 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // preference (see SizePreferenceModal) reads the same way here as it does
   // there, instead of one undifferentiated flat list.
   const sizeGroups = useMemo(() => {
-    const byCategory = new Map<string, { label: string; sizes: Set<string> }>()
+    const byCategory = new Map<string, { label: string; slug: string; sizes: Set<string> }>()
     for (const p of products) {
       if (!p.category_slug) continue
-      const entry = byCategory.get(p.category_slug) ?? { label: p.category_name ?? p.category_slug, sizes: new Set<string>() }
+      const entry =
+        byCategory.get(p.category_slug) ??
+        { label: p.category_name ?? p.category_slug, slug: p.category_slug, sizes: new Set<string>() }
       for (const v of p.variants) entry.sizes.add(v.size)
       byCategory.set(p.category_slug, entry)
     }
     return [...byCategory.values()]
-      .map((g) => ({ label: g.label, options: [...g.sizes].sort() }))
+      .map((g) => ({ label: g.label, slug: g.slug, options: [...g.sizes].sort() }))
       .sort((a, b) => a.label.localeCompare(b.label))
   }, [products])
 

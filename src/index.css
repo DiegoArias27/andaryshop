@@ -489,15 +489,48 @@ img {
 
 /* Hints that there are more categories off-screen to the right — shown only
    while the row can actually still scroll further (see CategoryPills.tsx's
-   scroll-position check), not as a permanently-on decoration. */
-.category-pills__fade {
+   scroll-position check), not as a permanently-on decoration. A small
+   nudging chevron instead of an edge fade/gradient (tried first — didn't
+   land well visually). */
+.category-pills__hint {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 32px;
-  background: linear-gradient(to right, transparent, rgba(var(--white-rgb), 0.95) 70%);
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--black);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
+  box-shadow: 0 2px 6px rgba(var(--shadow-rgb), 0.25);
+  animation: category-pills-hint-nudge 1.6s ease-in-out infinite;
+}
+
+.category-pills__hint svg {
+  width: 13px;
+  height: 13px;
+  transform: rotate(90deg);
+}
+
+@keyframes category-pills-hint-nudge {
+  0%,
+  100% {
+    transform: translateY(-50%) translateX(0);
+  }
+  50% {
+    transform: translateY(-50%) translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-pills__hint {
+    animation: none;
+    transform: translateY(-50%);
+  }
 }
 
 .category-pills::-webkit-scrollbar {
@@ -2333,8 +2366,8 @@ a.hero-banner__layout-el {
 }
 
 .product-card__color-dot {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: 2px solid var(--white);
   outline: 1px solid var(--gray-200);
@@ -2754,8 +2787,8 @@ a.hero-banner__layout-el {
 }
 
 .swatch {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
   border: 2px solid var(--white);
   outline: 1px solid var(--gray-200);
@@ -3471,8 +3504,8 @@ a.hero-banner__layout-el {
 
 .cart-item__swatch {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 13px;
+  height: 13px;
   border-radius: 999px;
   outline: 1px solid var(--gray-200);
 }
@@ -3885,28 +3918,38 @@ a.hero-banner__layout-el {
 
 /* ---------- Cart bubble + drawer ---------- */
 
+/* One merged pill (icon + price) instead of a small circle with a second
+   floating price chip stuck to its left — that looked like two unrelated
+   shapes bumping into each other instead of one clickable object. */
 .cart-bubble {
   position: fixed;
   right: 18px;
   bottom: calc(var(--nav-height) + 18px + 44px + 10px);
-  width: 52px;
   height: 52px;
+  padding: 0 16px 0 12px;
   border-radius: 999px;
   background: var(--black);
   color: var(--white);
   border: none;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
   box-shadow: 0 10px 24px rgba(13, 13, 13, 0.3);
   z-index: 26;
-  opacity: 0.82;
+}
+
+.cart-bubble__icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .cart-bubble__badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: -10px;
+  right: -12px;
   background: var(--red);
   color: var(--white);
   font-size: 16px;
@@ -3924,18 +3967,12 @@ a.hero-banner__layout-el {
 }
 
 .cart-bubble__total {
-  position: absolute;
-  top: 50%;
-  right: calc(100% + 8px);
-  transform: translateY(-50%);
-  background: var(--black);
   color: var(--red);
   font-size: 17px;
   font-weight: 800;
   white-space: nowrap;
-  padding: 7px 12px;
-  border-radius: 999px;
-  box-shadow: 0 6px 16px rgba(13, 13, 13, 0.25);
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .cart-bubble--bump {

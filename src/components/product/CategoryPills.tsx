@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Category } from '../../api/types'
+import { ChevronUpIcon } from '../icons'
 
 interface CategoryPillsProps {
   categories: Category[]
@@ -72,7 +73,11 @@ export default function CategoryPills({
           </button>
         )}
       </div>
-      {canScrollMore && <div className="category-pills__fade" aria-hidden="true" />}
+      {canScrollMore && (
+        <div className="category-pills__hint" aria-hidden="true">
+          <ChevronUpIcon />
+        </div>
+      )}
     </div>
   )
 }
