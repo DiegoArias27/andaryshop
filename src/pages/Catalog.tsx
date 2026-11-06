@@ -531,18 +531,28 @@ function CollectionSection({
 
       {isTieredBundle && !buildMode && (
         <div className="tier-grid">
-          {bundlePricedParts.map((part, i) => (
-            <TierCard
-              key={part.id}
-              featured={isTierFeatured(collection, `bundle:${part.id}`, i, bundlePricedParts.length)}
-              range={`Paquete de ${part.required_qty} ${part.category_name}`}
-              price={plaquePrice(part.price!)}
-              // No per-unit caption here — the price is for the whole
-              // package, not a per-piece rate, so showing "$X c/u" reads as
-              // a second (wrong) price instead of a helpful breakdown.
-              onSelect={() => handleStartBuildingForPart(part)}
-            />
-          ))}
+          {(() => {
+            const anyManualFeatured = bundlePricedParts.some((p) => !!p.is_featured)
+            return bundlePricedParts.map((part, i) => (
+              <TierCard
+                key={part.id}
+                featured={isTierFeatured(
+                  collection,
+                  `bundle:${part.id}`,
+                  i,
+                  bundlePricedParts.length,
+                  !!part.is_featured,
+                  anyManualFeatured
+                )}
+                range={`Paquete de ${part.required_qty} ${part.category_name}`}
+                price={plaquePrice(part.price!)}
+                // No per-unit caption here — the price is for the whole
+                // package, not a per-piece rate, so showing "$X c/u" reads as
+                // a second (wrong) price instead of a helpful breakdown.
+                onSelect={() => handleStartBuildingForPart(part)}
+              />
+            ))
+          })()}
         </div>
       )}
 
@@ -1176,6 +1186,9 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
               value={searchTerm}
               onChange={(e) => handleSearchTermChange(e.target.value)}
               placeholder="Buscar productos…"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+              }}
             />
             {searchTerm && (
               <button
@@ -1198,6 +1211,9 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
             value={searchTerm}
             onChange={(e) => handleSearchTermChange(e.target.value)}
             placeholder="Buscar productos…"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+            }}
           />
           {searchTerm && (
             <button

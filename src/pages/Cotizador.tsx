@@ -202,6 +202,7 @@ export default function Cotizador() {
         is_specific: 0,
         required_qty: l.qty,
         price: null,
+        is_featured: 0,
         is_gift: 0,
         combo_tier_id: tierId,
       })),
