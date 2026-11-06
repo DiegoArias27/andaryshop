@@ -585,7 +585,11 @@ img {
 .filter-menu__panel {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  /* Anchored from the right edge (not the left) and width-capped relative
+     to the viewport — Marca sits toward the right side of the toolbar, so
+     a long brand name used to grow this panel wide enough to run off the
+     right side of the screen with nothing stopping it. */
+  right: 0;
   z-index: 45;
   background: var(--white);
   border: 1px solid var(--gray-200);
@@ -596,6 +600,7 @@ img {
   flex-direction: column;
   gap: 10px;
   min-width: 160px;
+  max-width: min(260px, calc(100vw - 32px));
   max-height: 280px;
   overflow-y: auto;
 }
@@ -969,6 +974,7 @@ img {
   gap: 10px;
   font-size: 16px;
   cursor: pointer;
+  word-break: break-word;
 }
 
 .filter-check input {
