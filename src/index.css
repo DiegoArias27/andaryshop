@@ -3933,7 +3933,10 @@ a.hero-banner__layout-el {
   border: none;
   display: flex;
   align-items: center;
-  gap: 10px;
+  /* Wider than it looks like it needs to be — the badge below pokes out
+     into this gap on the icon's side, so it doesn't sit on top of the cart
+     icon itself. */
+  gap: 20px;
   box-shadow: 0 10px 24px rgba(13, 13, 13, 0.3);
   z-index: 26;
 }
@@ -3948,8 +3951,8 @@ a.hero-banner__layout-el {
 
 .cart-bubble__badge {
   position: absolute;
-  top: -10px;
-  right: -12px;
+  top: -16px;
+  right: -16px;
   background: var(--red);
   color: var(--white);
   font-size: 16px;
