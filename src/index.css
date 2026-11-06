@@ -441,7 +441,7 @@ img {
   border-radius: 999px;
   border: 1px solid var(--gray-200);
   background: var(--white);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--black);
   white-space: nowrap;
@@ -465,6 +465,13 @@ img {
   }
 }
 
+.category-pills-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
 .category-pills {
   display: flex;
   gap: 8px;
@@ -480,6 +487,19 @@ img {
   margin: -8px -2px;
 }
 
+/* Hints that there are more categories off-screen to the right — shown only
+   while the row can actually still scroll further (see CategoryPills.tsx's
+   scroll-position check), not as a permanently-on decoration. */
+.category-pills__fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, transparent, rgba(var(--white-rgb), 0.95) 70%);
+  pointer-events: none;
+}
+
 .category-pills::-webkit-scrollbar {
   display: none;
 }
@@ -491,7 +511,7 @@ img {
   border: 1px solid transparent;
   background: transparent;
   color: var(--black);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -544,7 +564,7 @@ img {
   border: none;
   background: transparent;
   color: var(--black);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   white-space: nowrap;
   position: relative;
@@ -558,15 +578,17 @@ img {
 .filter-btn__badge {
   background: var(--black);
   color: var(--white);
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 700;
   border-radius: 999px;
-  min-width: 16px;
-  height: 16px;
+  /* Box grown to actually fit the 16px minimum font-size above — it used
+     to be a 16px circle holding 16px-tall text, which clipped. */
+  min-width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 3px;
+  padding: 0 5px;
 }
 
 .filter-menu {
@@ -603,7 +625,7 @@ img {
 }
 
 .promo-card__text {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--black);
 }
@@ -642,7 +664,7 @@ img {
   transform: translate(-50%, -50%);
   background: var(--red);
   color: #fff;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -675,7 +697,7 @@ img {
 }
 
 .tier-card__caption {
-  font-size: 13px;
+  font-size: 16px;
   color: rgba(255, 255, 255, 0.55);
   margin: 0 0 4px;
 }
@@ -796,7 +818,7 @@ img {
   align-items: center;
   flex-wrap: wrap;
   gap: 2px 5px;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--on-photo);
   background: rgba(13, 13, 13, 0.75);
@@ -858,7 +880,7 @@ img {
 }
 
 .build-progress-pill__name {
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -893,7 +915,7 @@ img {
 }
 
 .build-progress-pill__row span {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   white-space: nowrap;
   flex: 1 1 auto;
@@ -925,7 +947,7 @@ img {
   color: #0d0d0d;
   border-radius: 999px;
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
@@ -947,7 +969,7 @@ img {
 }
 
 .filter-menu__group-label {
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -958,7 +980,7 @@ img {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -1244,7 +1266,7 @@ a.hero-banner__layout-el {
 
 .hero-banner__content p {
   color: var(--on-photo-muted);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
   max-width: 32ch;
 }
@@ -1277,7 +1299,7 @@ a.hero-banner__layout-el {
 
 .badge {
   display: inline-block;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -1345,7 +1367,7 @@ a.hero-banner__layout-el {
   padding: 14px 22px;
   border-radius: 999px;
   border: none;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.3px;
   text-transform: uppercase;
@@ -1465,7 +1487,7 @@ a.hero-banner__layout-el {
   border-radius: 999px;
   background: rgba(224, 18, 48, 0.1);
   color: var(--red);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.3px;
   text-transform: uppercase;
@@ -1530,7 +1552,7 @@ a.hero-banner__layout-el {
 
 .collection-banner__content p {
   color: var(--on-photo-muted);
-  font-size: 13px;
+  font-size: 16px;
   margin-top: 4px;
   max-width: 40ch;
 }
@@ -1595,7 +1617,7 @@ a.hero-banner__layout-el {
 
 .package-promo__content p {
   color: rgba(255, 255, 255, 0.75);
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .package-promo__content .btn {
@@ -1611,7 +1633,7 @@ a.hero-banner__layout-el {
   z-index: 1;
   background: var(--red);
   color: #fff;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -1657,13 +1679,13 @@ a.hero-banner__layout-el {
   }
 
   .package-promo__content p {
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .package-promo__badge {
     top: 24px;
     right: 24px;
-    font-size: 12px;
+    font-size: 16px;
     padding: 10px 18px;
   }
 }
@@ -1727,13 +1749,13 @@ a.hero-banner__layout-el {
 
 .category-showcase__body p {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
+  font-size: 16px;
   margin: 0;
 }
 
 .category-showcase__cta {
   color: #fff;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -1758,7 +1780,7 @@ a.hero-banner__layout-el {
   padding: 10px 26px;
   border-radius: 999px;
   border: 1px solid var(--gray-200);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--black);
   background: transparent;
@@ -1835,7 +1857,7 @@ a.hero-banner__layout-el {
 }
 
 .pagination__info {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--gray-600);
   min-width: 110px;
@@ -1942,7 +1964,7 @@ a.hero-banner__layout-el {
   gap: 10px;
   padding: 32px 0;
   color: var(--gray-600);
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .spinner {
@@ -2058,7 +2080,7 @@ a.hero-banner__layout-el {
   border-radius: 999px;
   background: rgba(var(--shadow-rgb), 0.35);
   color: #ffffff;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 600;
   z-index: 2;
   pointer-events: none;
@@ -2179,7 +2201,7 @@ a.hero-banner__layout-el {
     border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 999px;
     color: #ffffff;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 700;
     letter-spacing: 0.4px;
     text-transform: uppercase;
@@ -2212,7 +2234,7 @@ a.hero-banner__layout-el {
 }
 
 .product-card__body h3 {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   font-family: var(--font-body);
 }
@@ -2241,7 +2263,7 @@ a.hero-banner__layout-el {
 }
 
 .product-card__size-chip {
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.3px;
   color: var(--black);
@@ -2293,13 +2315,15 @@ a.hero-banner__layout-el {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 12px;
-  height: 12px;
+  /* Box grown to fit the 16px minimum font-size above — it used to be a
+     12px circle holding 16px-tall text, which clipped. */
+  min-width: 20px;
+  height: 20px;
   border-radius: 999px;
   background: var(--white);
   color: var(--black);
-  font-size: 9px;
-  padding: 0 2px;
+  font-size: 16px;
+  padding: 0 4px;
 }
 
 .product-card__colors {
@@ -2324,7 +2348,7 @@ a.hero-banner__layout-el {
 
 .state-msg {
   color: var(--gray-600);
-  font-size: 14px;
+  font-size: 16px;
   padding: 8px 0;
 }
 
@@ -2370,7 +2394,7 @@ a.hero-banner__layout-el {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--gray-400);
   background: none;
@@ -2599,7 +2623,7 @@ a.hero-banner__layout-el {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--black);
   margin-top: -4px;
@@ -2621,7 +2645,7 @@ a.hero-banner__layout-el {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--black);
 }
@@ -2638,7 +2662,7 @@ a.hero-banner__layout-el {
 }
 
 .detail-package-chip {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--black);
   background: rgba(var(--black-rgb), 0.06);
@@ -2649,7 +2673,7 @@ a.hero-banner__layout-el {
 
 .detail-desc {
   color: var(--gray-600);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
 }
 
@@ -2705,7 +2729,7 @@ a.hero-banner__layout-el {
 }
 
 .option-group__label {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.6px;
   color: var(--gray-600);
@@ -2713,7 +2737,7 @@ a.hero-banner__layout-el {
 
 .option-group__nudge {
   margin: -4px 0 0;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--red);
 }
@@ -2724,7 +2748,7 @@ a.hero-banner__layout-el {
 }
 
 .option-group__value {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--gray-600);
   margin-top: -2px;
 }
@@ -2754,7 +2778,7 @@ a.hero-banner__layout-el {
   border-radius: 8px;
   border: 1px solid var(--gray-200);
   background: var(--white);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
 }
 
@@ -2771,7 +2795,7 @@ a.hero-banner__layout-el {
 
 .stock-status {
   margin: -6px 0 6px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -2803,13 +2827,13 @@ a.hero-banner__layout-el {
      line instead of wrapping and making the whole footer taller, down to a
      320px-wide phone (checked against the longest labels this button ever
      shows in this 3-button layout). */
-  font-size: 11px;
+  font-size: 16px;
   padding: 14px 8px;
 }
 
 @media (min-width: 1024px) {
   .detail-footer .btn--primary {
-    font-size: 14px;
+    font-size: 16px;
     padding: 14px 22px;
   }
 }
@@ -2831,7 +2855,7 @@ a.hero-banner__layout-el {
 
 .btn--sm {
   padding: 11px 16px;
-  font-size: 12px;
+  font-size: 16px;
   flex: 0 0 auto;
 }
 
@@ -3002,7 +3026,7 @@ a.hero-banner__layout-el {
 }
 
 .cotizador-field__label {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -3056,13 +3080,13 @@ a.hero-banner__layout-el {
 }
 
 .cotizador-field__note {
-  font-size: 11px;
+  font-size: 16px;
   color: color-mix(in srgb, var(--black) 60%, transparent);
 }
 
 .cotizador-total-pieces {
   text-align: center;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--gray-600);
   margin: 0;
 }
@@ -3079,16 +3103,31 @@ a.hero-banner__layout-el {
 .cotizador-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 6px;
-  min-width: 560px;
+  border-spacing: 4px;
+  /* table-layout: fixed divides the full width evenly across however many
+     category columns there are, so the table always fits without needing
+     to scroll — the old fixed 560px min-width forced horizontal scrolling
+     even when the viewport had room to show it narrower. Below 640px the
+     cell content also stacks (see .cotizador-table__cell) and wraps
+     instead of staying on one line, so a long label/price still fits its
+     narrower share of the width. */
+  table-layout: fixed;
+}
+
+@media (min-width: 640px) {
+  .cotizador-table {
+    border-spacing: 6px;
+  }
 }
 
 .cotizador-table th {
   color: var(--red);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   padding-bottom: 4px;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .cotizador-table td {
@@ -3097,16 +3136,32 @@ a.hero-banner__layout-el {
   background: var(--gray-100);
   color: var(--black);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 8px 6px;
   border-left: 3px solid var(--red);
-  white-space: nowrap;
+  white-space: normal;
+}
+
+@media (min-width: 640px) {
+  .cotizador-table td {
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
 }
 
 .cotizador-table__cell {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  gap: 2px;
+}
+
+@media (min-width: 640px) {
+  .cotizador-table__cell {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 8px;
+  }
 }
 
 .cotizador-table__cell--active {
@@ -3115,12 +3170,12 @@ a.hero-banner__layout-el {
 }
 
 .cotizador-table__range {
-  font-size: 13px;
+  font-size: 16px;
   opacity: 0.8;
 }
 
 .cotizador-table__price {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -3151,7 +3206,7 @@ a.hero-banner__layout-el {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .cotizador-summary__total {
@@ -3175,7 +3230,7 @@ a.hero-banner__layout-el {
   background: var(--gray-50);
   border-radius: 14px;
   padding: 16px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--black);
 }
 
@@ -3212,7 +3267,7 @@ a.hero-banner__layout-el {
 .cotizador-footer__total {
   display: flex;
   flex-direction: column;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--gray-600);
 }
 
@@ -3273,7 +3328,7 @@ a.hero-banner__layout-el {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .cotizador-saved__pieces {
@@ -3318,7 +3373,7 @@ a.hero-banner__layout-el {
 }
 
 .cart-section__title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--gray-600);
   margin-bottom: 14px;
@@ -3401,12 +3456,12 @@ a.hero-banner__layout-el {
 }
 
 .cart-item__info h3 {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .cart-item__meta {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--gray-600);
   display: flex;
   align-items: center;
@@ -3423,7 +3478,7 @@ a.hero-banner__layout-el {
 }
 
 .cart-item__price {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   margin-top: 6px;
 }
@@ -3480,7 +3535,7 @@ a.hero-banner__layout-el {
 .qty-stepper span {
   min-width: 16px;
   text-align: center;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -3540,7 +3595,7 @@ a.hero-banner__layout-el {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--gray-600);
 }
@@ -3589,14 +3644,14 @@ a.hero-banner__layout-el {
 
 .auth-card__subtitle {
   color: var(--gray-600);
-  font-size: 13px;
+  font-size: 16px;
   margin: 0 0 14px;
   max-width: 300px;
 }
 
 .form-error {
   color: var(--red);
-  font-size: 13px;
+  font-size: 16px;
   margin-top: 8px;
 }
 
@@ -3644,7 +3699,7 @@ a.hero-banner__layout-el {
 }
 
 .profile-since {
-  font-size: 12px;
+  font-size: 16px;
   color: var(--gray-400);
   margin: 2px 0 0;
 }
@@ -3662,7 +3717,7 @@ a.hero-banner__layout-el {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .profile-contact__label {
@@ -3683,7 +3738,7 @@ a.hero-banner__layout-el {
   padding: 12px 14px;
   border: 1px solid var(--gray-200);
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--black);
   transition: border-color 0.15s ease;
@@ -3704,7 +3759,7 @@ a.hero-banner__layout-el {
   background: var(--gray-100);
   border-radius: 999px;
   padding: 2px 9px;
-  font-size: 12px;
+  font-size: 16px;
   color: var(--gray-600);
 }
 
@@ -3717,7 +3772,7 @@ a.hero-banner__layout-el {
 }
 
 .appearance-card__title {
-  font-size: 14px;
+  font-size: 16px;
   margin: 0 0 14px;
 }
 
@@ -3735,7 +3790,7 @@ a.hero-banner__layout-el {
   padding: 14px 8px;
   border: 1px solid var(--gray-200);
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--gray-600);
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
@@ -3762,26 +3817,32 @@ a.hero-banner__layout-el {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--gray-600);
 }
 
 .cart-breakdown__row--discount {
   color: var(--red);
   font-weight: 600;
+  font-size: 18px;
 }
 
 .cart-total {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 600;
   padding-top: 8px;
   border-top: 1px solid var(--gray-200);
 }
 
+.cart-total strong {
+  font-size: 22px;
+}
+
 .cart-total__hint {
-  font-size: 12px;
+  font-size: 16px;
   color: var(--gray-400);
   margin-top: -8px;
 }
@@ -3790,7 +3851,7 @@ a.hero-banner__layout-el {
   color: var(--gray-400);
   text-decoration: line-through;
   font-weight: 400;
-  font-size: 12px;
+  font-size: 16px;
   margin-left: 6px;
 }
 
@@ -3801,7 +3862,7 @@ a.hero-banner__layout-el {
   border-radius: 999px;
   background: rgba(var(--black-rgb), 0.08);
   color: var(--gray-600);
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -3815,7 +3876,7 @@ a.hero-banner__layout-el {
   border-radius: 999px;
   background: rgba(180, 95, 6, 0.12);
   color: var(--amber);
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -3844,19 +3905,21 @@ a.hero-banner__layout-el {
 
 .cart-bubble__badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -6px;
+  right: -6px;
   background: var(--red);
   color: var(--white);
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
   border-radius: 999px;
-  min-width: 20px;
-  height: 20px;
+  /* Box grown to fit the 16px minimum font-size above without clipping —
+     also keeps two-digit counts (10+) from looking cramped. */
+  min-width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px;
+  padding: 0 6px;
   border: 2px solid var(--white);
 }
 
@@ -3866,11 +3929,11 @@ a.hero-banner__layout-el {
   right: calc(100% + 8px);
   transform: translateY(-50%);
   background: var(--black);
-  color: var(--white);
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--red);
+  font-size: 17px;
+  font-weight: 800;
   white-space: nowrap;
-  padding: 6px 10px;
+  padding: 7px 12px;
   border-radius: 999px;
   box-shadow: 0 6px 16px rgba(13, 13, 13, 0.25);
 }
@@ -3902,7 +3965,7 @@ a.hero-banner__layout-el {
   position: absolute;
   top: 50%;
   left: 50%;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1;
   color: #ffd23f;
   text-shadow: 0 0 4px rgba(255, 210, 63, 0.7);
@@ -4105,14 +4168,14 @@ a.hero-banner__layout-el {
 
 .tour-tooltip p {
   margin: 0 0 10px;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--gray-600);
   line-height: 1.4;
 }
 
 .tour-tooltip__cta {
   margin: 0 0 16px !important;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--black) !important;
   background: var(--gray-50);
@@ -4169,7 +4232,7 @@ a.hero-banner__layout-el {
 }
 
 .size-modal__hint {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--gray-600);
   margin-bottom: 8px;
 }
@@ -4207,7 +4270,7 @@ a.hero-banner__layout-el {
 }
 
 .size-modal__category-name {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -4227,7 +4290,7 @@ a.hero-banner__layout-el {
   border: 1px solid var(--gray-200);
   background: var(--white);
   color: var(--black);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -4248,7 +4311,7 @@ a.hero-banner__layout-el {
   border-radius: 12px;
   background: var(--gray-50);
   color: var(--gray-600);
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.4;
   text-align: center;
 }
@@ -4279,7 +4342,7 @@ a.hero-banner__layout-el {
 .toast {
   background: var(--black);
   color: var(--white);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   padding: 12px 22px;
   border-radius: 999px;
@@ -4385,7 +4448,7 @@ a.hero-banner__layout-el {
 }
 
 .cart-drawer__section-title {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -4456,18 +4519,18 @@ a.hero-banner__layout-el {
 }
 
 .cart-drawer__item-info h3 {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .cart-drawer__item-info p {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--gray-600);
   margin-top: 2px;
 }
 
 .cart-drawer__item-price {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--black);
   margin-top: 4px;
@@ -4505,14 +4568,14 @@ a.hero-banner__layout-el {
 }
 
 .cart-drawer__savings {
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--red);
   text-align: right;
 }
 
 .cart-drawer__savings--customer {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--gray-600, #625f58);
 }
@@ -4599,13 +4662,13 @@ a.hero-banner__layout-el {
 
 .site-footer__brand p {
   color: var(--gray-600);
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.6;
 }
 
 .site-footer__col h3 {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -4617,7 +4680,7 @@ a.hero-banner__layout-el {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--black);
   margin-top: 8px;
 }
@@ -4647,7 +4710,7 @@ a.hero-banner__layout-el {
 
 .site-footer__copy {
   text-align: center;
-  font-size: 12px;
+  font-size: 16px;
   color: var(--gray-400);
   margin-top: 32px;
 }

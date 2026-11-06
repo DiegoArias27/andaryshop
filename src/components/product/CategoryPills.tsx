@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { Category } from '../../api/types'
 
 interface CategoryPillsProps {
@@ -22,31 +23,56 @@ export default function CategoryPills({
   onSelectPackages,
   highlightSlugs,
 }: CategoryPillsProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  // Only shown while the row can actually still scroll further right — not
+  // a permanent decoration — so it never lies about there being more once
+  // you've reached the last pill.
+  const [canScrollMore, setCanScrollMore] = useState(false)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    function check() {
+      setCanScrollMore(el!.scrollWidth - el!.clientWidth - el!.scrollLeft > 4)
+    }
+    check()
+    el.addEventListener('scroll', check, { passive: true })
+    const resizeObserver = new ResizeObserver(check)
+    resizeObserver.observe(el)
+    return () => {
+      el.removeEventListener('scroll', check)
+      resizeObserver.disconnect()
+    }
+  }, [categories.length, onSelectPackages])
+
   return (
-    <div className="category-pills" data-tour="categories">
-      <button className={`pill ${activeSlug === null && !packagesActive ? 'pill--active' : ''}`} onClick={() => onSelect(null)}>
-        Inicio
-      </button>
-      {categories.map((category) => (
-        <button
-          key={category.id}
-          className={`pill ${activeSlug === category.slug ? 'pill--active' : ''} ${
-            highlightSlugs?.has(category.slug) ? 'pill--highlight' : ''
-          }`}
-          onClick={() => onSelect(category.slug)}
-        >
-          {category.name}
+    <div className="category-pills-wrap">
+      <div className="category-pills" data-tour="categories" ref={scrollRef}>
+        <button className={`pill ${activeSlug === null && !packagesActive ? 'pill--active' : ''}`} onClick={() => onSelect(null)}>
+          Inicio
         </button>
-      ))}
-      {onSelectPackages && (
-        <button
-          className={`pill ${packagesActive ? 'pill--active' : ''}`}
-          onClick={onSelectPackages}
-          data-tour="packages-pill"
-        >
-          Paquetes
-        </button>
-      )}
+        {categories.map((category) => (
+          <button
+            key={category.id}
+            className={`pill ${activeSlug === category.slug ? 'pill--active' : ''} ${
+              highlightSlugs?.has(category.slug) ? 'pill--highlight' : ''
+            }`}
+            onClick={() => onSelect(category.slug)}
+          >
+            {category.name}
+          </button>
+        ))}
+        {onSelectPackages && (
+          <button
+            className={`pill ${packagesActive ? 'pill--active' : ''}`}
+            onClick={onSelectPackages}
+            data-tour="packages-pill"
+          >
+            Paquetes
+          </button>
+        )}
+      </div>
+      {canScrollMore && <div className="category-pills__fade" aria-hidden="true" />}
     </div>
   )
 }

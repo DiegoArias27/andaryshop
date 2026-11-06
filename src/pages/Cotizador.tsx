@@ -286,7 +286,7 @@ export default function Cotizador() {
                 <tbody>
                   {canonicalRanges.map((range) => {
                     const active = totalPieces >= range.min && (range.max === null || totalPieces <= range.max)
-                    const rangeLabel = range.max ? `${range.min} a ${range.max}` : `${range.min} a 100`
+                    const rangeLabel = range.max ? `${range.min}–${range.max}` : `${range.min}–100`
                     return (
                       <tr key={`${range.min}-${range.max ?? 'inf'}`}>
                         {visibleTypes.map((type) => {
