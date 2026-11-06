@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { Category } from '../../api/types'
-import { ChevronUpIcon } from '../icons'
 
 interface CategoryPillsProps {
   categories: Category[]
@@ -25,26 +24,16 @@ export default function CategoryPills({
   highlightSlugs,
 }: CategoryPillsProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  // Only shown while the row can actually still scroll further right — not
-  // a permanent decoration — so it never lies about there being more once
-  // you've reached the last pill.
-  const [canScrollMore, setCanScrollMore] = useState(false)
 
+  // Picking a category/Paquetes remounts this whole component (its parent
+  // keys ProductsSection by the active category — see Catalog.tsx), which
+  // snapped the row's scroll back to the very start even when the pill you
+  // just picked was further along — scroll it back into view every time
+  // the active one changes instead of leaving that to chance.
   useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    function check() {
-      setCanScrollMore(el!.scrollWidth - el!.clientWidth - el!.scrollLeft > 4)
-    }
-    check()
-    el.addEventListener('scroll', check, { passive: true })
-    const resizeObserver = new ResizeObserver(check)
-    resizeObserver.observe(el)
-    return () => {
-      el.removeEventListener('scroll', check)
-      resizeObserver.disconnect()
-    }
-  }, [categories.length, onSelectPackages])
+    const active = scrollRef.current?.querySelector('.pill--active')
+    active?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  }, [activeSlug, packagesActive])
 
   return (
     <div className="category-pills-wrap">
@@ -73,11 +62,6 @@ export default function CategoryPills({
           </button>
         )}
       </div>
-      {canScrollMore && (
-        <div className="category-pills__hint" aria-hidden="true">
-          <ChevronUpIcon />
-        </div>
-      )}
     </div>
   )
 }
