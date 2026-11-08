@@ -3,7 +3,7 @@ import { api } from '../api/client'
 import type { Collection, CollectionBundlePart, CollectionComboTier, Product, ProductVariant, WholesaleTier } from '../api/types'
 import { useCart } from '../hooks/useCart'
 import { isPackageCollection } from '../utils/collections'
-import { productThumb } from '../utils/images'
+import { colorThumb } from '../utils/images'
 import { PackageBuilderContext, type ComboPartProgress, type SelectedUnit } from './package-builder-context'
 
 // combo: every part (paid or gift) is capped at its own required_qty, and
@@ -256,7 +256,7 @@ export function PackageBuilderProvider({ children }: { children: ReactNode }) {
         slug: p.slug,
         name: p.name,
         price: parseFloat(p.price),
-        image: productThumb(p),
+        image: colorThumb(p, v.color_name),
         size: v.size,
         colorName: v.color_name,
         colorHex: v.color_hex,
@@ -307,7 +307,7 @@ export function PackageBuilderProvider({ children }: { children: ReactNode }) {
         slug: p.slug,
         name: p.name,
         price: parseFloat(p.price),
-        image: productThumb(p),
+        image: colorThumb(p, v.color_name),
         size: v.size,
         colorName: v.color_name,
         colorHex: v.color_hex,

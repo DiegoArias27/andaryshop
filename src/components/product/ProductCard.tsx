@@ -249,7 +249,7 @@ export default function ProductCard({
       slug: product.slug,
       name: product.name,
       price,
-      image: product.image,
+      image: product.imagesByColor?.[variant.colorName] ?? product.image,
       size: variant.size,
       colorName: variant.colorName,
       colorHex: variant.colorHex,
@@ -307,7 +307,14 @@ export default function ProductCard({
   return (
     <Link
       to={`/producto/${product.slug}`}
-      state={packageCollection ? { fromPackageCollection: packageCollection } : undefined}
+      // Carries whatever color is active here so the detail page opens
+      // showing that same color instead of recomputing its own default —
+      // picking white here and landing on a different color's photo read as
+      // the selection not having done anything.
+      state={{
+        ...(packageCollection ? { fromPackageCollection: packageCollection } : {}),
+        ...(activeColorName ? { preselectedColor: activeColorName } : {}),
+      }}
       className="product-card"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

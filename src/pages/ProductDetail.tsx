@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Collection, Product, ProductVariant } from '../api/types'
-import { productThumb } from '../utils/images'
+import { colorThumb, productThumb } from '../utils/images'
 import Header from '../components/layout/Header'
 import ZoomImage from '../components/product/ZoomImage'
 import MobileCarousel from '../components/product/MobileCarousel'
@@ -43,6 +43,14 @@ export interface FromPackageCollectionState {
   fromPackageCollection: Collection
 }
 
+/** Carried by a ProductCard with a color actively selected (see its own
+ * state prop) — lets the color the shopper already picked there keep
+ * showing here instead of this page recomputing its own default and
+ * silently landing on a different one. */
+export interface PreselectedColorState {
+  preselectedColor: string
+}
+
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>()
   if (!slug) return <NotFound />
@@ -63,6 +71,7 @@ function ProductDetail({ slug }: { slug: string }) {
   const editItem = (location.state as EditCartItemState | null)?.editItem ?? null
   const editSelection = (location.state as EditSelectionState | null)?.editSelection ?? null
   const fromPackageCollection = (location.state as FromPackageCollectionState | null)?.fromPackageCollection ?? null
+  const preselectedColor = (location.state as PreselectedColorState | null)?.preselectedColor ?? null
 
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -77,6 +86,7 @@ function ProductDetail({ slug }: { slug: string }) {
   const [colorTouched, setColorTouched] = useState(false)
   const [shakeSize, setShakeSize] = useState(false)
   const [shakeColor, setShakeColor] = useState(false)
+  const optionsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let ignore = false
@@ -106,15 +116,30 @@ function ProductDetail({ slug }: { slug: string }) {
         const preferredSize = data.category_slug ? sizeByCategory[data.category_slug] : undefined
         const preferredSizeHasStock =
           !matchingVariant && !!preferredSize && data.variants.some((v) => v.size === preferredSize && v.stock > 0)
-        const initialSize = preferredSizeHasStock ? (preferredSize as string) : (firstVariant?.size ?? null)
+        // Whatever color was already active on the ProductCard this was
+        // opened from (see PreselectedColorState) — outranks the generic
+        // defaults below, same idea as the size preference, so the photo
+        // showing here matches the one the shopper was just looking at.
+        const preselectedColorHasStock =
+          !matchingVariant &&
+          !preferredSizeHasStock &&
+          !!preselectedColor &&
+          data.variants.some((v) => v.color_name === preselectedColor && v.stock > 0)
+        const initialSize = preferredSizeHasStock
+          ? (preferredSize as string)
+          : preselectedColorHasStock
+            ? (data.variants.find((v) => v.color_name === preselectedColor && v.stock > 0)?.size ?? null)
+            : (firstVariant?.size ?? null)
         const initialColor = preferredSizeHasStock
           ? (data.variants.find((v) => v.size === initialSize && v.stock > 0)?.color_name ?? null)
-          : (firstVariant?.color_name ?? null)
+          : preselectedColorHasStock
+            ? preselectedColor
+            : (firstVariant?.color_name ?? null)
         setSelectedColor(initialColor)
         setSelectedSize(initialSize)
         setQuantity(editItem?.quantity ?? 1)
-        setSizeTouched(!!matchingVariant || preferredSizeHasStock)
-        setColorTouched(!!matchingVariant || preferredSizeHasStock)
+        setSizeTouched(!!matchingVariant || preferredSizeHasStock || preselectedColorHasStock)
+        setColorTouched(!!matchingVariant || preferredSizeHasStock || preselectedColorHasStock)
         setLoading(false)
       })
       .catch((err) => {
@@ -140,6 +165,31 @@ function ProductDetail({ slug }: { slug: string }) {
     const urls = pool.map((img) => img.image_url)
     return urls.length > 0 ? urls : product.main_image_url ? [product.main_image_url] : []
   }, [product, selectedColor])
+
+  // activeImage is a thumbnail INDEX, not tied to which color it was picked
+  // under — switching color left it pointing at whatever index it was last
+  // at in the PREVIOUS color's gallery, which could land on a different,
+  // unrelated photo (or the wrong one entirely) once the new color's own
+  // gallery resolves. Jumping back to this color's main photo every time
+  // the gallery itself changes is what "selecting a color" should show.
+  useEffect(() => {
+    setActiveImage(0)
+  }, [gallery])
+
+  // On mobile the photo alone can fill most of the first screen, so TALLA/
+  // COLOR — the very first thing there's actually something to do here —
+  // never showed without scrolling down by hand first. Nudges down to them
+  // once the product is ready, not all the way (block: 'center' keeps the
+  // bottom of the photo in view too, so the page doesn't just jump straight
+  // past it). Runs once per product, not on every re-render.
+  useEffect(() => {
+    if (isDesktop || !product) return
+    const frame = requestAnimationFrame(() => {
+      optionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+    return () => cancelAnimationFrame(frame)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product, isDesktop])
 
   const colors = useMemo(() => {
     if (!product) return []
@@ -227,11 +277,20 @@ function ProductDetail({ slug }: { slug: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, activeCollection])
 
+  // On mobile the gallery sits above TALLA/COLOR, tall enough that picking
+  // one (further down the page) doesn't show the resulting photo change
+  // without scrolling back up by hand — do it for them instead.
+  function scrollToGalleryTop() {
+    if (isDesktop) return
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   function handleSelectColor(colorName: string) {
     // Colors shown are already narrowed to the selected size (see
     // visibleColorsForSize), so picking one never needs to touch the size.
     setSelectedColor(colorName)
     setColorTouched(true)
+    scrollToGalleryTop()
   }
 
   function handleSelectSize(size: string) {
@@ -249,6 +308,7 @@ function ProductDetail({ slug }: { slug: string }) {
       return firstInStock ?? firstAny ?? null
     })
     setColorTouched(true)
+    scrollToGalleryTop()
   }
 
   function handleAddToCart() {
@@ -261,7 +321,7 @@ function ProductDetail({ slug }: { slug: string }) {
         slug: product.slug,
         name: product.name,
         price: parseFloat(product.price),
-        image: productThumb(product),
+        image: colorThumb(product, activeVariant.color_name),
         size: activeVariant.size,
         colorName: activeVariant.color_name,
         colorHex: activeVariant.color_hex,
@@ -282,7 +342,7 @@ function ProductDetail({ slug }: { slug: string }) {
         slug: product.slug,
         name: product.name,
         price: parseFloat(product.price),
-        image: productThumb(product),
+        image: colorThumb(product, activeVariant.color_name),
         size: activeVariant.size,
         colorName: activeVariant.color_name,
         colorHex: activeVariant.color_hex,
@@ -302,7 +362,7 @@ function ProductDetail({ slug }: { slug: string }) {
       slug: product.slug,
       name: product.name,
       price: parseFloat(product.price),
-      image: productThumb(product),
+      image: colorThumb(product, activeVariant.color_name),
       size: activeVariant.size,
       colorName: activeVariant.color_name,
       colorHex: activeVariant.color_hex,
@@ -528,6 +588,7 @@ function ProductDetail({ slug }: { slug: string }) {
 
         <hr />
 
+        <div ref={optionsRef}>
         {visibleSizes.length > 0 && (
           <div className={`option-group ${shakeSize ? 'option-group--shake' : ''}`}>
             <span className="option-group__label">TALLA</span>
@@ -576,6 +637,7 @@ function ProductDetail({ slug }: { slug: string }) {
             {selectedColor && <p className="option-group__value">{selectedColor}</p>}
           </div>
         )}
+        </div>
 
         {activeVariant && activeVariant.stock === 0 && (
           <p className="stock-status stock-status--out">
