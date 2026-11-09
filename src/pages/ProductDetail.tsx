@@ -60,7 +60,7 @@ export default function ProductDetailPage() {
 }
 
 function ProductDetail({ slug }: { slug: string }) {
-  const { addItem, removeItem } = useCart()
+  const { addItem, removeItem, updateQuantity } = useCart()
   const { activeCollection, isInActiveCollection, packagesFor, canPick, pick, startBuildingAndPick, removeOne } =
     usePackageBuilder()
   const { isFavorite, toggleFavorite } = useFavorites()
@@ -80,6 +80,21 @@ function ProductDetail({ slug }: { slug: string }) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
   const quantityPulse = usePulseDirection(quantity)
+  // Editing an existing cart line (editItem): quantity +/- here felt like a
+  // live control (it visibly updates right away), but it only actually
+  // reached the cart once CONFIRMAR CAMBIOS was pressed afterward — easy to
+  // miss since nothing about the stepper itself hints a separate save step
+  // is still needed. Syncing it straight to the cart line removes that
+  // step entirely; CONFIRMAR CAMBIOS stays for an actual size/color swap.
+  useEffect(() => {
+    // quantity can be 0 momentarily while the input is cleared to retype a
+    // new number (see its onChange below) — syncing that would delete the
+    // cart line outright (updateQuantity treats <= 0 as a removal) before
+    // the new digits ever land.
+    if (!editItem || !product || quantity <= 0) return
+    updateQuantity(product.id, editItem.size, editItem.colorName, quantity)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quantity, product])
   const [lastAddedVariantId, setLastAddedVariantId] = useState<number | null>(null)
   const [activeImage, setActiveImage] = useState(0)
   const [sizeTouched, setSizeTouched] = useState(false)
