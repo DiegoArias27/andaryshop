@@ -327,6 +327,13 @@ img {
   min-width: 0;
   max-width: 100%;
   transition: max-width 0.3s ease;
+  /* The rounded pill shape here is just this box's own border-radius — it
+     never actually clipped what's inside it to that shape, so the active
+     (solid white/black) pill scrolling near the edge showed a hard
+     rectangular cut instead of following the rounded corner. Most visible
+     once the row is narrowed (filters open) and there's less room before
+     hitting that edge. */
+  overflow: hidden;
 }
 
 /* Makes room for the Talla/Marca panel sliding open beside it (see
