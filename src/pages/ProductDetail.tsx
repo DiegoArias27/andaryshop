@@ -277,9 +277,12 @@ function ProductDetail({ slug }: { slug: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, activeCollection])
 
-  // On mobile the gallery sits above TALLA/COLOR, tall enough that picking
-  // one (further down the page) doesn't show the resulting photo change
-  // without scrolling back up by hand — do it for them instead.
+  // On mobile the gallery sits above TALLA/COLOR, tall enough that picking a
+  // COLOR (the only one of the two that actually changes the photo — see
+  // the gallery useMemo above) doesn't show the result without scrolling
+  // back up by hand. Size on its own never changes the photo, so it stays
+  // put — scrolling there would just be a jarring jump with nothing new to
+  // actually see at the top.
   function scrollToGalleryTop() {
     if (isDesktop) return
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -308,7 +311,6 @@ function ProductDetail({ slug }: { slug: string }) {
       return firstInStock ?? firstAny ?? null
     })
     setColorTouched(true)
-    scrollToGalleryTop()
   }
 
   function handleAddToCart() {

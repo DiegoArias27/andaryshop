@@ -9,6 +9,23 @@ export function toCardData(p: Product): ProductCardData {
     if (img.color_name && !imagesByColor[img.color_name]) imagesByColor[img.color_name] = img.thumb_url ?? img.image_url
   }
 
+  // A color with no photo of its own falls back to whichever photo is
+  // tagged "General" (color_name null) — same rule GalleryManager's own
+  // hint promises and ProductDetail's gallery already follows. Without
+  // this, that color fell back to the product's single cover photo
+  // instead (main_image_url/productThumb below), which is a different,
+  // unrelated thing whenever the cover happens to be some OTHER color's
+  // own tagged shot — tapping that color then looked like it did nothing,
+  // since the image shown never actually changed.
+  const generalImage = p.images.find((img) => !img.color_name)
+  if (generalImage) {
+    const generalUrl = generalImage.thumb_url ?? generalImage.image_url
+    const colorNames = new Set(p.variants.map((v) => v.color_name))
+    for (const name of colorNames) {
+      if (!imagesByColor[name]) imagesByColor[name] = generalUrl
+    }
+  }
+
   const secondary = p.images.find((img) => img.image_url !== p.main_image_url)
 
   return {
