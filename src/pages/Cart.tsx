@@ -98,12 +98,17 @@ export default function Cart() {
   function renderItem({ item, effectivePrice, source, isGift, priceBreakdown }: PricedItem) {
     const displayPrice = Math.max(0, effectivePrice - customerDiscount)
     const hasAnyDiscount = source !== 'retail' || customerDiscount > 0
+    // Same state handleEdit's own pencil icon sends — tapping the photo or
+    // the name was landing on a plain, non-edit product page instead,
+    // inconsistent with tapping the pencil right next to it for the exact
+    // same cart line.
+    const editState: EditCartItemState = { editItem: { size: item.size, colorName: item.colorName, quantity: item.quantity } }
     return (
       <li key={`${item.productId}-${item.size}-${item.colorName}-${isGift ? 'gift' : 'paid'}`} className="cart-item">
-        <Link to={`/producto/${item.slug}`} className="cart-item__media" aria-label={item.name}>
+        <Link to={`/producto/${item.slug}`} state={editState} className="cart-item__media" aria-label={item.name}>
           {item.image ? <img src={item.image} alt={item.name} /> : <div className="cart-item__placeholder" />}
         </Link>
-        <Link to={`/producto/${item.slug}`} className="cart-item__info">
+        <Link to={`/producto/${item.slug}`} state={editState} className="cart-item__info">
           <h3>{item.name}</h3>
           <p className="cart-item__meta">
             Talla {item.size} · <span className="cart-item__swatch" style={{ backgroundColor: item.colorHex }} />{' '}

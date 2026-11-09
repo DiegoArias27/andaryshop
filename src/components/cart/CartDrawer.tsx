@@ -100,10 +100,16 @@ export default function CartDrawer() {
   function renderItem({ item, effectivePrice, source, isGift, priceBreakdown }: PricedItem) {
     const displayPrice = Math.max(0, effectivePrice - customerDiscount)
     const hasAnyDiscount = source !== 'retail' || customerDiscount > 0
+    // Same state the pencil icon's own handleEdit sends — tapping the photo
+    // or the name was landing on a plain, non-edit product page instead,
+    // inconsistent with tapping the pencil right next to it for the exact
+    // same cart line.
+    const editState: EditCartItemState = { editItem: { size: item.size, colorName: item.colorName, quantity: item.quantity } }
     return (
       <li key={`${item.productId}-${item.size}-${item.colorName}-${isGift ? 'gift' : 'paid'}`} className="cart-drawer__item">
         <Link
           to={`/producto/${item.slug}`}
+          state={editState}
           className="cart-drawer__item-media"
           onClick={closeDrawer}
           aria-label={item.name}
@@ -111,7 +117,7 @@ export default function CartDrawer() {
           {item.image ? <img src={item.image} alt={item.name} /> : <div className="cart-drawer__item-placeholder" />}
         </Link>
         <div className="cart-drawer__item-info">
-          <Link to={`/producto/${item.slug}`} onClick={closeDrawer} className="cart-drawer__item-link">
+          <Link to={`/producto/${item.slug}`} state={editState} onClick={closeDrawer} className="cart-drawer__item-link">
             <h3>{item.name}</h3>
             <p>
               Talla {item.size} · {item.colorName}
