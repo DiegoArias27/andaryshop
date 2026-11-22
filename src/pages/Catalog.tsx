@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type {
   Banner,
@@ -839,12 +839,16 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // but remounting never touches the browser's own scroll position, so
   // arriving here from a link/button while scrolled halfway down a
   // previous page rendered the new section at that same scroll instead of
-  // the top. Skipped when a #collection-… hash is present: that case is
-  // its own intentional scroll-to-that-section (see the hash effect below),
-  // not a fresh section view that should reset to the top.
+  // the top. Skipped when a #collection-… hash is present (its own
+  // intentional scroll-to-that-section, see the hash effect below) or when
+  // this mount is the result of a back/forward navigation — e.g. returning
+  // here from a product's detail page — which should land wherever the
+  // catalog was scrolled to instead of snapping back to the top.
+  const navigationType = useNavigationType()
   useEffect(() => {
-    if (window.location.hash) return
+    if (window.location.hash || navigationType === 'POP') return
     window.scrollTo(0, 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // The toolbar floats over the hero banner (see showHero below) via a
@@ -914,6 +918,11 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // away, since there's no single category/collection this mixed grid maps
   // to.
   const [allProductsVisible, setAllProductsVisible] = useState(SECTION_PREVIEW_CAP)
+  // A single category's own listing — "Ver más" grows this instead of
+  // paging through numbered pages, same as "Todos los productos" above.
+  // Resets on its own since this whole component remounts on a category
+  // change (see ProductsSection's `key` in Catalog below).
+  const [categoryVisible, setCategoryVisible] = useState(SECTION_PREVIEW_CAP)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const { activeCollection, activePart, isInActiveCollection, comboPartProgress, packagesFor } = usePackageBuilder()
   // A single active Talla filter counts as an explicit size choice already
@@ -1395,11 +1404,19 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
               ) : (
                 <>
                   <div className="product-grid">
-                    {pagedProducts.map((p) => (
+                    {filteredProducts.slice(0, categoryVisible).map((p) => (
                       <ProductCard key={p.id} product={toCardData(p)} rawProduct={p} autoSize={resolveAutoSize(filterSize, p, sizeByCategory)} />
                     ))}
                   </div>
-                  <Pagination page={currentPage} pageCount={pageCount} onChange={handlePageChange} />
+                  {filteredProducts.length > categoryVisible && (
+                    <button
+                      type="button"
+                      className="see-more-btn"
+                      onClick={() => setCategoryVisible((v) => v + SECTION_PREVIEW_CAP)}
+                    >
+                      Ver más
+                    </button>
+                  )}
                 </>
               )}
             </section>

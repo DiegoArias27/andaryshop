@@ -2743,11 +2743,23 @@ a.hero-banner__layout-el {
 
 .detail-package-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* overflow-x: auto forces overflow-y: auto too (see .category-pills'
+     own comment) — padding/negative margin keeps the row's own outer size
+     unchanged while giving each chip room to not get clipped. */
+  padding: 2px;
+  margin: -2px;
+}
+
+.detail-package-chips::-webkit-scrollbar {
+  display: none;
 }
 
 .detail-package-chip {
+  flex: 0 0 auto;
   font-size: 16px;
   font-weight: 700;
   color: var(--black);
@@ -2755,6 +2767,7 @@ a.hero-banner__layout-el {
   border: 1px solid rgba(var(--black-rgb), 0.15);
   border-radius: 999px;
   padding: 4px 12px;
+  white-space: nowrap;
 }
 
 .detail-desc {
@@ -3252,8 +3265,13 @@ a.hero-banner__layout-el {
 
 .cotizador-table__cell--active {
   background: var(--red) !important;
-  border-left-color: var(--white) !important;
-  color: var(--white) !important;
+  /* --white flips to a near-black value in dark mode (it's the "paper"
+     token, not literal white) — wrong here since this cell's own
+     background (--red) never flips. --on-photo is the token for exactly
+     this: text/accents over a fixed-color surface that always need to
+     stay light regardless of theme. */
+  border-left-color: var(--on-photo) !important;
+  color: var(--on-photo) !important;
 }
 
 .cotizador-table__range {

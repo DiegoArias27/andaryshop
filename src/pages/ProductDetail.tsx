@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Collection, Product, ProductVariant } from '../api/types'
@@ -101,7 +101,6 @@ function ProductDetail({ slug }: { slug: string }) {
   const [colorTouched, setColorTouched] = useState(false)
   const [shakeSize, setShakeSize] = useState(false)
   const [shakeColor, setShakeColor] = useState(false)
-  const optionsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let ignore = false
@@ -190,21 +189,6 @@ function ProductDetail({ slug }: { slug: string }) {
   useEffect(() => {
     setActiveImage(0)
   }, [gallery])
-
-  // On mobile the photo alone can fill most of the first screen, so TALLA/
-  // COLOR — the very first thing there's actually something to do here —
-  // never showed without scrolling down by hand first. Nudges down to them
-  // once the product is ready, not all the way (block: 'center' keeps the
-  // bottom of the photo in view too, so the page doesn't just jump straight
-  // past it). Runs once per product, not on every re-render.
-  useEffect(() => {
-    if (isDesktop || !product) return
-    const frame = requestAnimationFrame(() => {
-      optionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
-    return () => cancelAnimationFrame(frame)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product, isDesktop])
 
   const colors = useMemo(() => {
     if (!product) return []
@@ -605,7 +589,7 @@ function ProductDetail({ slug }: { slug: string }) {
 
         <hr />
 
-        <div ref={optionsRef}>
+        <div>
         {visibleSizes.length > 0 && (
           <div className={`option-group ${shakeSize ? 'option-group--shake' : ''}`}>
             <span className="option-group__label">TALLA</span>
