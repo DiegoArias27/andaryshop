@@ -60,7 +60,7 @@ export default function ProductDetailPage() {
 }
 
 function ProductDetail({ slug }: { slug: string }) {
-  const { addItem, removeItem, updateQuantity } = useCart()
+  const { items: cartItems, addItem, removeItem, updateQuantity } = useCart()
   const { activeCollection, isInActiveCollection, packagesFor, canPick, pick, startBuildingAndPick, removeOne } =
     usePackageBuilder()
   const { isFavorite, toggleFavorite } = useFavorites()
@@ -316,6 +316,11 @@ function ProductDetail({ slug }: { slug: string }) {
     if (!product || !activeVariant) return
     if (promptForChoice()) return
     const isOut = activeVariant.stock <= 0
+    // Caps at what's actually still available on top of whatever's already
+    // in the cart for this exact variant (see remainingStock/alreadyInCart
+    // above) — the stepper already keeps `quantity` within that range, this
+    // is just the last word before it actually reaches the cart.
+    if (!isOut && remainingStock <= 0) return
     addItem(
       {
         productId: product.id,
@@ -328,7 +333,7 @@ function ProductDetail({ slug }: { slug: string }) {
         colorHex: activeVariant.color_hex,
         preorder: isOut,
       },
-      isOut ? 1 : Math.max(1, quantity)
+      isOut ? 1 : Math.min(Math.max(1, quantity), remainingStock)
     )
     setLastAddedVariantId(activeVariant.id)
   }
@@ -472,6 +477,22 @@ function ProductDetail({ slug }: { slug: string }) {
     buildingForThisProduct &&
     !!activeVariant &&
     (alreadyBuilding ? canPick(product, activeVariant) : activeVariant.stock > 0)
+  // How many of this exact variant are already sitting in the cart from an
+  // earlier "Añadir al carrito" — without subtracting this, the quantity
+  // stepper (and the button itself) kept letting the customer add up to the
+  // variant's FULL stock every single visit, on top of whatever was already
+  // in the cart, instead of just whatever's actually still available. Only
+  // meaningful for the plain add-to-cart flow below: editItem replaces the
+  // line outright (not additive) and the package builder tracks its own
+  // picks separately, so neither needs this adjustment.
+  const alreadyInCart =
+    !editItem && !editSelection && !buildingForThisProduct && product && activeVariant
+      ? cartItems
+          .filter((i) => i.productId === product.id && i.size === activeVariant.size && i.colorName === activeVariant.color_name)
+          .reduce((sum, i) => sum + i.quantity, 0)
+      : 0
+  const remainingStock = activeVariant ? Math.max(0, activeVariant.stock - alreadyInCart) : 0
+  const maxedInCart = !outOfStock && alreadyInCart > 0 && remainingStock <= 0
   // Every package this product belongs to, mentioned regardless of whether
   // a build is active — tapping one jumps to that collection's own section
   // instead of starting or switching a build (only that collection's own
@@ -662,10 +683,10 @@ function ProductDetail({ slug }: { slug: string }) {
             <input
               type="number" inputMode="numeric"
               min={1}
-              max={activeVariant?.stock ?? undefined}
+              max={remainingStock > 0 ? remainingStock : undefined}
               value={outOfStock ? 1 : quantity === 0 ? '' : quantity}
               placeholder="1"
-              disabled={outOfStock}
+              disabled={outOfStock || maxedInCart}
               onChange={(e) => {
                 const raw = e.target.value
                 if (raw === '') {
@@ -674,15 +695,14 @@ function ProductDetail({ slug }: { slug: string }) {
                 }
                 const n = Number(raw)
                 if (!Number.isFinite(n)) return
-                const max = activeVariant?.stock ?? n
-                setQuantity(Math.max(0, Math.min(max, Math.round(n))))
+                setQuantity(Math.max(0, Math.min(remainingStock, Math.round(n))))
               }}
               onBlur={() => setQuantity((q) => Math.max(1, q))}
             />
             <button
-              onClick={() => setQuantity((q) => Math.min(activeVariant?.stock ?? 1, (q || 1) + 1))}
+              onClick={() => setQuantity((q) => Math.min(remainingStock || 1, (q || 1) + 1))}
               aria-label="Sumar"
-              disabled={outOfStock || !activeVariant || quantity >= activeVariant.stock}
+              disabled={outOfStock || maxedInCart || quantity >= remainingStock}
             >
               <PlusIcon />
             </button>
@@ -704,7 +724,11 @@ function ProductDetail({ slug }: { slug: string }) {
             CONFIRMAR CAMBIOS
           </button>
         ) : (
-          <button className={`btn btn--primary ${outOfStock ? 'btn--outofstock' : ''}`} onClick={handleAddToCart}>
+          <button
+            className={`btn btn--primary ${outOfStock ? 'btn--outofstock' : ''}`}
+            onClick={handleAddToCart}
+            disabled={maxedInCart}
+          >
             {outOfStock ? (
               added ? (
                 <>
@@ -713,6 +737,8 @@ function ProductDetail({ slug }: { slug: string }) {
               ) : (
                 'AGOTADO · AVISARME'
               )
+            ) : maxedInCart ? (
+              'YA TIENES TODO EL STOCK EN TU CARRITO'
             ) : added ? (
               <>
                 <CheckIcon /> AGREGADO

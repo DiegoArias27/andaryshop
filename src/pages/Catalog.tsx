@@ -49,6 +49,41 @@ const PAGE_SIZE_DESKTOP = 24
 const PAGE_SIZE_MOBILE = 8
 const SECTION_PREVIEW_CAP = 11
 
+/** How many cards a "Ver más" grid shows, persisted in sessionStorage under
+ * `key` instead of plain useState — ProductsSection fully remounts on a
+ * back/forward navigation to/from a product's detail page (different
+ * route, not just a re-render), which reset this back to SECTION_PREVIEW_CAP
+ * every time. That shrank the page back down right as the browser tried to
+ * restore the scroll position you'd scrolled to before clicking in, so
+ * there was nothing there yet to scroll back down to. Scoped per key (the
+ * active category/Paquetes/all) so switching categories still starts fresh. */
+function usePersistedVisibleCount(key: string): [number, (updater: number | ((v: number) => number)) => void] {
+  const [value, setValue] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem(key)
+      const n = raw ? Number(raw) : NaN
+      return Number.isFinite(n) && n > 0 ? n : SECTION_PREVIEW_CAP
+    } catch {
+      return SECTION_PREVIEW_CAP
+    }
+  })
+
+  function setPersisted(updater: number | ((v: number) => number)) {
+    setValue((prev) => {
+      const next = typeof updater === 'function' ? (updater as (v: number) => number)(prev) : updater
+      try {
+        sessionStorage.setItem(key, String(next))
+      } catch {
+        // Private browsing / storage disabled — "Ver más" still works for
+        // this view, it just won't survive a back navigation.
+      }
+      return next
+    })
+  }
+
+  return [value, setPersisted]
+}
+
 function tierRangeLabel(t: WholesaleTier, categoryName?: string | null): string {
   const base = t.max_qty ? `${t.min_qty} a ${t.max_qty} piezas` : `${t.min_qty} piezas o más`
   return categoryName ? `${base} de ${categoryName}` : base
@@ -851,6 +886,12 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Scoped per view (the active category/Paquetes/all — same idea as
+  // usePersistedVisibleCount below) so returning to a DIFFERENT one than
+  // where a product was opened from never restores the wrong scroll spot.
+  const visibleCountKey = `andary-catalog-visible-${packagesOnly ? 'paquetes' : (category ?? 'all')}`
+  const scrollKey = `${visibleCountKey}-scrollY`
+
   // The toolbar floats over the hero banner (see showHero below) via a
   // negative margin-bottom equal to its own rendered height, so the next
   // sibling (Hero) starts flush at the same y position instead of after the
@@ -874,6 +915,39 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    function saveScroll() {
+      try {
+        sessionStorage.setItem(scrollKey, String(window.scrollY))
+      } catch {
+        // ignore
+      }
+    }
+    window.addEventListener('scroll', saveScroll, { passive: true })
+    return () => window.removeEventListener('scroll', saveScroll)
+  }, [scrollKey])
+
+  // Restoring scroll on a POP navigation (see the scroll-to-top effect
+  // above, which deliberately skips itself for that case) has to wait for
+  // `loading` to actually finish — the grid is still empty/skeleton-sized
+  // right when this mounts, so scrolling immediately would just land
+  // wherever the much-shorter loading page happens to end, with nothing
+  // to correct it afterward (browsers mostly don't re-apply a scroll
+  // restoration after a later layout change in an SPA).
+  useEffect(() => {
+    if (navigationType !== 'POP' || loading) return
+    let raw: string | null = null
+    try {
+      raw = sessionStorage.getItem(scrollKey)
+    } catch {
+      // ignore
+    }
+    const y = raw ? Number(raw) : NaN
+    if (!Number.isFinite(y)) return
+    const frame = requestAnimationFrame(() => window.scrollTo(0, y))
+    return () => cancelAnimationFrame(frame)
+  }, [navigationType, loading, scrollKey])
   const { sizeByCategory } = useSizePreference()
   // Lifted into a context so it survives this component's own remounts
   // (route changes, and this section's `key` swap on category change —
@@ -917,12 +991,10 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // grows by SECTION_PREVIEW_CAP each "Ver más" click instead of navigating
   // away, since there's no single category/collection this mixed grid maps
   // to.
-  const [allProductsVisible, setAllProductsVisible] = useState(SECTION_PREVIEW_CAP)
+  const [allProductsVisible, setAllProductsVisible] = usePersistedVisibleCount(`${visibleCountKey}-all`)
   // A single category's own listing — "Ver más" grows this instead of
   // paging through numbered pages, same as "Todos los productos" above.
-  // Resets on its own since this whole component remounts on a category
-  // change (see ProductsSection's `key` in Catalog below).
-  const [categoryVisible, setCategoryVisible] = useState(SECTION_PREVIEW_CAP)
+  const [categoryVisible, setCategoryVisible] = usePersistedVisibleCount(`${visibleCountKey}-cat`)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const { activeCollection, activePart, isInActiveCollection, comboPartProgress, packagesFor } = usePackageBuilder()
   // A single active Talla filter counts as an explicit size choice already
