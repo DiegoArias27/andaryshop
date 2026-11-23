@@ -61,7 +61,7 @@ export default function ProductCard({
   packageCollection?: Collection
 }) {
   const { isFavorite, toggleFavorite } = useFavorites()
-  const { addItem } = useCart()
+  const { items: cartItems, addItem } = useCart()
   const { activeCollection, isInActiveCollection, canPick, pick, startBuildingAndPick, countFor } = usePackageBuilder()
   const { sizeByCategory } = useSizePreference()
   const { showToast } = useToast()
@@ -244,6 +244,17 @@ export default function ProductCard({
       ? product.variants?.find((v) => v.size === effectiveSize && v.colorName === colorName && v.stock > 0)
       : (product.variants?.find((v) => v.colorName === colorName && v.stock > 0) ?? product.variants?.find((v) => v.stock > 0))
     if (!variant) return
+    // Quick-add only ever checked the variant's own stock, never what's
+    // already sitting in the cart from an earlier quick-add — so tapping
+    // it repeatedly (or across visits) could push a cart line past what's
+    // actually available, same bug ProductDetail's own add-to-cart had.
+    const alreadyInCart = cartItems
+      .filter((i) => i.productId === product.id && i.size === variant.size && i.colorName === variant.colorName)
+      .reduce((sum, i) => sum + i.quantity, 0)
+    if (alreadyInCart >= variant.stock) {
+      showToast(`Ya tienes en tu carrito todo el stock disponible de "${product.name}" (${variant.size} · ${variant.colorName})`)
+      return
+    }
     addItem({
       productId: product.id,
       slug: product.slug,

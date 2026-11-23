@@ -11,8 +11,14 @@ export default function BottomNav() {
   const searchOpen = location.pathname === '/' && searchParams.get('buscar') === '1'
 
   function handleSearchClick() {
+    // Keeps whatever's already in the URL (categoria=sudaderas, paquetes=1…)
+    // — this used to hardcode a bare "/?buscar=1", which dropped the
+    // current category entirely and dumped the customer back on the home
+    // view just for opening search from inside one.
+    const next = new URLSearchParams(searchParams)
     if (searchOpen) {
-      navigate('/')
+      next.delete('buscar')
+      navigate(`/?${next.toString()}`)
       return
     }
     // iOS only opens the keyboard for a focus() still inside this click —
@@ -20,7 +26,8 @@ export default function BottomNav() {
     // catalog), grab it and focus it right now instead of waiting for the
     // navigate() below to reopen it asynchronously. See mobileSearchFocus.ts.
     showAndFocusMobileSearchInput()
-    navigate('/?buscar=1')
+    next.set('buscar', '1')
+    navigate(`/?${next.toString()}`)
   }
 
   return (
