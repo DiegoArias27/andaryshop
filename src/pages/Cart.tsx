@@ -86,7 +86,7 @@ export default function Cart() {
       ),
       notes
     )
-    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl(inStockItems.map((p) => p.item), notes, order))
+    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl(notes, order))
     setSentOrder(order)
     // Only the sent, in-stock items leave the cart — an out-of-stock line
     // stays put so the customer can still see it (or remove it) later.

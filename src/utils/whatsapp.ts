@@ -38,13 +38,11 @@ export interface RecordedOrder {
   token: string
 }
 
-// Prices are intentionally left out of the message: it's plain text the
-// customer can edit before sending, so it must never be treated as a
-// trustworthy price quote. Totals are confirmed by the seller over chat.
-// Used to also link each line to its own /producto/:slug (wa.me can only
-// pre-fill text, never attach a photo) — replaced by the one order-level
-// link below, which now shows every item with its photo on one page
-// instead of a link per line cluttering a multi-item message.
+// The itemized breakdown (and, before that, a per-item /producto/:slug
+// link) used to live in this message — dropped entirely now that
+// /pedido/:token shows every item with its own photo on one page, so the
+// WhatsApp message itself just needs to say which order this is and link
+// to it.
 // `order` (from recordOrder below) lets the seller match this exact chat to
 // the right row in Pedidos — without its id, two customers ordering the
 // same thing look identical in the admin panel. Called "pedido #" in the
@@ -52,17 +50,11 @@ export interface RecordedOrder {
 // recognizes. Its token builds the one link in the message: the customer
 // can reopen it later (or share it back with the seller) to see this exact
 // order's status, without needing an account.
-export function buildWhatsappOrderUrl(items: CartItem[], notes: string, order?: RecordedOrder | null): string {
+export function buildWhatsappOrderUrl(notes: string, order?: RecordedOrder | null): string {
   const phone = import.meta.env.VITE_WHATSAPP_NUMBER
 
   const lines = [
-    order ? `Hola! Quiero hacer el pedido #${order.id} en ANDARY SHOP:` : 'Hola! Quiero hacer un pedido en ANDARY SHOP:',
-    '',
-    ...items.map(
-      (item) =>
-        `• ${item.name} — Talla ${item.size}, Color ${item.colorName} x${item.quantity}` +
-        (item.preorder ? ' (⚠ agotado — ¿me confirman fecha de disponibilidad?)' : '')
-    ),
+    order ? `Hola! Quiero hacer el pedido #${order.id} en ANDARY SHOP.` : 'Hola! Quiero hacer un pedido en ANDARY SHOP.',
   ]
 
   if (notes.trim()) {
@@ -137,18 +129,13 @@ export async function recordOrder(
  * Still recorded in Pedidos (as a single preorder line) so it shows up
  * there too, tagged "Aviso de disponibilidad" instead of looking like a
  * regular pending sale. */
-export function buildWhatsappNotifyUrl(
-  item: { name: string; size: string; colorName: string },
-  order?: RecordedOrder | null
-): string {
+export function buildWhatsappNotifyUrl(order?: RecordedOrder | null): string {
   const phone = import.meta.env.VITE_WHATSAPP_NUMBER
 
   const lines = [
     order
       ? `Hola! ¿Me pueden avisar cuando vuelva a haber stock de este producto? (pedido #${order.id})`
       : 'Hola! ¿Me pueden avisar cuando vuelva a haber stock de este producto?',
-    '',
-    `• ${item.name} — Talla ${item.size}, Color ${item.colorName}`,
   ]
 
   if (order) {

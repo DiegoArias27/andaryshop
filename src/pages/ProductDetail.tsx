@@ -381,17 +381,11 @@ function ProductDetail({ slug }: { slug: string }) {
     const order = await recordOrder([{ item, unitPrice: parseFloat(product.price) }], '')
 
     if (isOut) {
-      goToWhatsapp(
-        whatsappTab,
-        buildWhatsappNotifyUrl(
-          { name: product.name, size: activeVariant.size, colorName: activeVariant.color_name },
-          order
-        )
-      )
+      goToWhatsapp(whatsappTab, buildWhatsappNotifyUrl(order))
       return
     }
 
-    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl([item], '', order))
+    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl('', order))
   }
 
   function handlePickForPackage() {

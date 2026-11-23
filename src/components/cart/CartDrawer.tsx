@@ -76,7 +76,6 @@ export default function CartDrawer() {
 
   async function handleSendOrder() {
     const whatsappTab = openWhatsappTab()
-    const enriched = items.map((item) => ({ ...item, preorder: isOutOfStock(item) }))
     const order = await recordOrder(
       pricedItems.flatMap((p) =>
         expandPricedItemForOrder(p).map((seg) => ({
@@ -91,7 +90,7 @@ export default function CartDrawer() {
       ),
       ''
     )
-    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl(enriched, '', order))
+    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl('', order))
     setSentOrder(order)
     removeItems((item) => !isOutOfStock(item))
   }
