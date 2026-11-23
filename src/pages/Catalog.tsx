@@ -977,10 +977,12 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // Marca, which could overflow the screen on a long brand name.
   const [filtersOpen, setFiltersOpen] = useState(false)
   // Playera-only, so local state is enough — this section remounts (its
-  // `key` swaps) on every category change, so it's already back to "show
-  // both" the moment the shopper leaves Playeras, without needing to be
-  // wired into CatalogFiltersContext like Talla/Marca.
-  const [neckTypeFilter, setNeckTypeFilter] = useState<Set<NeckType>>(new Set())
+  // `key` swaps) on every category change, so it's already back to
+  // "Ambas" the moment the shopper leaves Playeras, without needing to be
+  // wired into CatalogFiltersContext like Talla/Marca. Exclusive choice
+  // (not a multi-select Set) — "Ambas" is its own always-clickable option
+  // rather than implied by nothing being picked.
+  const [neckTypeFilter, setNeckTypeFilter] = useState<NeckType | 'ambas'>('ambas')
   // Same reset-on-remount reasoning — null (no filter, show every package)
   // the moment the shopper leaves and comes back to Paquetes.
   const [packageTypeFilter, setPackageTypeFilter] = useState<'playeras' | 'sudaderas' | 'ambas' | null>(null)
@@ -1158,8 +1160,7 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
       const inStock = p.variants.some((v) => v.stock > 0)
       const sizeOk = selectedSizes.length === 0 || p.variants.some((v) => selectedSizes.includes(v.size))
       const brandOk = selectedBrands.length === 0 || (!!p.brand_name && selectedBrands.includes(p.brand_name))
-      const neckOk =
-        category !== 'playeras' || neckTypeFilter.size === 0 || (!!p.neck_type && neckTypeFilter.has(p.neck_type))
+      const neckOk = category !== 'playeras' || neckTypeFilter === 'ambas' || p.neck_type === neckTypeFilter
       const searchOk = !term || p.name.toLowerCase().includes(term) || (p.description ?? '').toLowerCase().includes(term)
       return inStock && sizeOk && brandOk && neckOk && searchOk
     })
@@ -1531,22 +1532,15 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
               <h2>{categoryName}</h2>
               {category === 'playeras' && (
                 <div className="pill-toggle-row">
-                  {(['redondo', 'polo'] as const).map((nt) => (
+                  {(['redondo', 'polo', 'ambas'] as const).map((nt) => (
                     <button
                       key={nt}
                       type="button"
-                      className={`pill-toggle ${neckTypeFilter.has(nt) ? 'pill-toggle--active' : ''}`}
-                      aria-pressed={neckTypeFilter.has(nt)}
-                      onClick={() =>
-                        setNeckTypeFilter((prev) => {
-                          const next = new Set(prev)
-                          if (next.has(nt)) next.delete(nt)
-                          else next.add(nt)
-                          return next
-                        })
-                      }
+                      className={`pill-toggle ${neckTypeFilter === nt ? 'pill-toggle--active' : ''}`}
+                      aria-pressed={neckTypeFilter === nt}
+                      onClick={() => setNeckTypeFilter(nt)}
                     >
-                      {nt === 'redondo' ? 'Cuello redondo' : 'Tipo polo'}
+                      {nt === 'redondo' ? 'Cuello redondo' : nt === 'polo' ? 'Tipo polo' : 'Ambas'}
                     </button>
                   ))}
                 </div>
