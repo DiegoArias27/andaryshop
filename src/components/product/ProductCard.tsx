@@ -35,6 +35,9 @@ export interface ProductCardData {
   /** Computed from real sales — takes priority over isNew when both apply. */
   isBestseller?: boolean
   variants?: ProductCardVariant[]
+  /** Free-form admin labels ("Oferta", "Edición limitada"…) — see
+   * ProductEditor's "Etiquetas" section in admin. */
+  tags?: { id: number; name: string }[]
 }
 
 const DOUBLE_TAP_WINDOW = 280
@@ -412,6 +415,15 @@ export default function ProductCard({
       </div>
       <div className="product-card__body">
         <h3>{product.name}</h3>
+        {product.tags && product.tags.length > 0 && (
+          <div className="product-card__tags">
+            {product.tags.map((t) => (
+              <span key={t.id} className="product-card__tag">
+                {t.name}
+              </span>
+            ))}
+          </div>
+        )}
         {(availableSizes.length > 0 || uniqueColors.length > 0) && (
           <div className="product-card__variants">
             {availableSizes.length > 0 && (

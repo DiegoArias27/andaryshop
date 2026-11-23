@@ -3,7 +3,10 @@ import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { PublicOrder } from '../api/types'
 import Header from '../components/layout/Header'
-import { BackIcon, CheckIcon, CopyIcon, WhatsappIcon } from '../components/icons'
+import GoogleSignInButton from '../components/account/GoogleSignInButton'
+import { useCustomerAuth } from '../hooks/useCustomerAuth'
+import { useToast } from '../hooks/useToast'
+import { BackIcon, CheckIcon, CloseIcon, CopyIcon, WhatsappIcon } from '../components/icons'
 import { formatPrice } from '../utils/currency'
 
 const STATUS_LABELS: Record<PublicOrder['status'], string> = {
@@ -28,10 +31,13 @@ function formatDate(iso: string) {
 
 export default function OrderStatus() {
   const { token } = useParams<{ token: string }>()
+  const { customer } = useCustomerAuth()
+  const { showToast } = useToast()
   const [order, setOrder] = useState<PublicOrder | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [viewerImage, setViewerImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) return
@@ -70,6 +76,21 @@ export default function OrderStatus() {
     return `https://wa.me/${phone}?text=${text}`
   }
 
+  // Attaches this order to the account that just logged in — only works
+  // while it's still unowned (see the backend's claimOrder); already being
+  // logged in when the order was first sent already attaches it
+  // automatically, so this is specifically for a guest order found later.
+  async function handleClaimed() {
+    if (!token) return
+    try {
+      const updated = await api.claimOrder(token)
+      setOrder(updated)
+      showToast('Pedido guardado en tu cuenta')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'No se pudo guardar el pedido en tu cuenta')
+    }
+  }
+
   return (
     <div className="page page--order-status">
       <Header variant="home" />
@@ -99,6 +120,13 @@ export default function OrderStatus() {
               <p>{STATUS_HINTS[order.status]}</p>
             </div>
 
+            {!customer && (
+              <div className="order-status__login">
+                <p>Inicia sesión con Google para guardar este pedido en tu cuenta y verlo cuando quieras en Mis pedidos:</p>
+                <GoogleSignInButton onSuccess={handleClaimed} />
+              </div>
+            )}
+
             <button type="button" className="btn btn--ghost btn--block" onClick={handleCopyLink}>
               {copied ? (
                 <>
@@ -114,7 +142,18 @@ export default function OrderStatus() {
             <ul className="order-status__items">
               {order.items.map((item, i) => (
                 <li key={i} className="order-status__item">
-                  {item.image ? <img src={item.image} alt="" /> : <div className="order-status__item-placeholder" />}
+                  {item.image ? (
+                    <button
+                      type="button"
+                      className="order-status__item-thumb-btn"
+                      onClick={() => setViewerImage(item.image)}
+                      aria-label="Ver imagen en grande"
+                    >
+                      <img src={item.image} alt="" />
+                    </button>
+                  ) : (
+                    <div className="order-status__item-placeholder" />
+                  )}
                   <div className="order-status__item-info">
                     <span className="order-status__item-name">{item.name}</span>
                     <span className="order-status__item-meta">
@@ -145,6 +184,20 @@ export default function OrderStatus() {
           </div>
         )}
       </div>
+
+      {viewerImage && (
+        <div className="order-status__viewer-overlay" onClick={() => setViewerImage(null)}>
+          <button
+            type="button"
+            className="icon-btn order-status__viewer-close"
+            onClick={() => setViewerImage(null)}
+            aria-label="Cerrar"
+          >
+            <CloseIcon />
+          </button>
+          <img src={viewerImage} alt="" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   )
 }

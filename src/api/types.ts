@@ -162,6 +162,9 @@ export interface Product {
   collection_discount_price?: string | null
   /** Active collections this product belongs to (with their pricing config). */
   collections: ProductCollectionMembership[]
+  /** Free-form admin labels ("Oferta", "Edición limitada"…) — shown as a
+   * chip on ProductCard/ProductDetail. */
+  tags: { id: number; name: string; slug: string }[]
 }
 
 export interface Collection {

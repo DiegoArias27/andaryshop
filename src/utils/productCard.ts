@@ -46,5 +46,6 @@ export function toCardData(p: Product): ProductCardData {
       colorHex: v.color_hex,
       stock: v.stock,
     })),
+    tags: p.tags,
   }
 }

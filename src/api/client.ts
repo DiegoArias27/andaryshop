@@ -131,6 +131,9 @@ export const api = {
   // Public — the token alone (from the WhatsApp message/Mis pedidos) is
   // what authorizes this, no login needed. See OrderStatus.tsx.
   getOrderByToken: (token: string) => request<PublicOrder>(`/orders/public/${token}`),
+  // Attaches a still-guest order to the account that just logged in — see
+  // OrderStatus.tsx's "Inicia sesión para guardar este pedido".
+  claimOrder: (token: string) => request<PublicOrder>(`/orders/public/${token}/claim`, { method: 'POST' }),
   // Only ever shows what was placed while actually logged in — a guest
   // order has no way to retroactively attach to an account. See
   // Account.tsx's "Mis pedidos".

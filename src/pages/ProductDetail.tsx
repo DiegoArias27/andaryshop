@@ -575,6 +575,15 @@ function ProductDetail({ slug }: { slug: string }) {
           !!product.is_new && <span className="badge badge--muted">NUEVO MODELO</span>
         )}
         <h1>{product.name}</h1>
+        {product.tags.length > 0 && (
+          <div className="product-card__tags">
+            {product.tags.map((t) => (
+              <span key={t.id} className="product-card__tag">
+                {t.name}
+              </span>
+            ))}
+          </div>
+        )}
         {promo && promo.type === 'bundle' ? (
           <button className="detail-promo-link" onClick={handlePromoClick}>
             <TagIcon /> Descuento disponible en {promo.collectionName}

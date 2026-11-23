@@ -17,7 +17,7 @@ declare global {
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
 
-export default function GoogleSignInButton() {
+export default function GoogleSignInButton({ onSuccess }: { onSuccess?: () => void }) {
   const { loginWithGoogle } = useCustomerAuth()
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -32,7 +32,11 @@ export default function GoogleSignInButton() {
         client_id: CLIENT_ID as string,
         callback: (response) => {
           loginWithGoogle(response.credential)
-            .then(() => navigate('/'))
+            // onSuccess, when given, takes over instead of the default
+            // "go to the catalog" — OrderStatus.tsx uses it to stay right
+            // where it is and claim this exact order for the account that
+            // just logged in.
+            .then(() => (onSuccess ? onSuccess() : navigate('/')))
             .catch((err) => {
               setError(err instanceof Error ? err.message : 'Error al iniciar sesión con Google')
             })
@@ -56,7 +60,7 @@ export default function GoogleSignInButton() {
     script.async = true
     script.onload = renderButton
     document.head.appendChild(script)
-  }, [loginWithGoogle, navigate])
+  }, [loginWithGoogle, navigate, onSuccess])
 
   if (!CLIENT_ID) return null
 
