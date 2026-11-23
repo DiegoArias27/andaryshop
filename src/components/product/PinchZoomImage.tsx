@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 
 interface PinchZoomImageProps {
   src: string
@@ -7,6 +7,9 @@ interface PinchZoomImageProps {
 
 const MAX_SCALE = 3
 const MIN_SCALE = 1
+const DOUBLE_TAP_ZOOM = 2.5
+const DOUBLE_TAP_MS = 300
+const TAP_MOVE_TOLERANCE = 10
 
 function distance(a: Touch, b: Touch) {
   return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
@@ -15,7 +18,9 @@ function distance(a: Touch, b: Touch) {
 /** Pinch-to-zoom + drag-to-pan on a single product photo, scoped to that
  * image instead of the whole page — without this, pinching over the photo
  * triggers the browser's own page zoom (header, buttons, everything),
- * which reads as broken rather than "look closer at the shirt."
+ * which reads as broken rather than "look closer at the shirt." Double-
+ * tapping (or double-clicking, on desktop) the same photo toggles between
+ * 1x and a fixed zoomed-in level.
  *
  * React attaches touchstart/touchmove listeners as passive for scroll
  * performance, so calling preventDefault() from a JSX onTouchMove prop is
@@ -38,17 +43,50 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
     panStartY: 0,
     panOriginX: 0,
     panOriginY: 0,
+    tapStartX: 0,
+    tapStartY: 0,
+    gestureHadMultiTouch: false,
+    lastTapTime: 0,
   })
+
+  function apply(smooth = false) {
+    const img = imgRef.current
+    if (!img) return
+    img.style.transition = smooth ? 'transform 0.2s ease' : ''
+    img.style.transform = `translate(${state.current.x}px, ${state.current.y}px) scale(${state.current.scale})`
+  }
+
+  function reset() {
+    const s = state.current
+    s.scale = 1
+    s.x = 0
+    s.y = 0
+    apply(true)
+  }
+
+  function toggleZoom() {
+    const s = state.current
+    if (s.scale > 1.01) {
+      reset()
+    } else {
+      s.scale = DOUBLE_TAP_ZOOM
+      s.x = 0
+      s.y = 0
+      apply(true)
+    }
+  }
+
+  // Desktop: a plain React onDoubleClick, no passive-listener gotchas since
+  // it doesn't need to block any native scroll/zoom gesture.
+  function handleDoubleClick(e: ReactMouseEvent) {
+    e.preventDefault()
+    toggleZoom()
+  }
 
   useEffect(() => {
     const wrap = wrapRef.current
-    const img = imgRef.current
-    if (!wrap || !img) return
+    if (!wrap) return
     const s = state.current
-
-    function apply() {
-      if (img) img.style.transform = `translate(${s.x}px, ${s.y}px) scale(${s.scale})`
-    }
 
     function clampPan() {
       if (!wrap) return
@@ -60,14 +98,20 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
     }
 
     function onTouchStart(e: TouchEvent) {
-      if (e.touches.length === 2) {
+      if (e.touches.length === 1) {
+        s.gestureHadMultiTouch = false
+        s.tapStartX = e.touches[0].clientX
+        s.tapStartY = e.touches[0].clientY
+        if (s.scale > 1.01) {
+          s.panStartX = e.touches[0].clientX
+          s.panStartY = e.touches[0].clientY
+          s.panOriginX = s.x
+          s.panOriginY = s.y
+        }
+      } else if (e.touches.length === 2) {
+        s.gestureHadMultiTouch = true
         s.pinchStartDist = distance(e.touches[0], e.touches[1])
         s.pinchStartScale = s.scale
-      } else if (e.touches.length === 1 && s.scale > 1.01) {
-        s.panStartX = e.touches[0].clientX
-        s.panStartY = e.touches[0].clientY
-        s.panOriginX = s.x
-        s.panOriginY = s.y
       }
     }
 
@@ -89,7 +133,26 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
     }
 
     function onTouchEnd(e: TouchEvent) {
-      if (e.touches.length === 0 && s.scale <= 1.01) {
+      if (e.touches.length !== 0) return
+
+      // Double-tap to toggle zoom — only for a clean single-finger tap
+      // (never part of a pinch) that barely moved (a pan/drag doesn't
+      // count as a tap, even if it ends quickly).
+      const changed = e.changedTouches[0]
+      const moved = changed ? Math.hypot(changed.clientX - s.tapStartX, changed.clientY - s.tapStartY) : Infinity
+      const wasTap = !s.gestureHadMultiTouch && moved <= TAP_MOVE_TOLERANCE
+      const now = Date.now()
+      if (wasTap && now - s.lastTapTime < DOUBLE_TAP_MS) {
+        s.lastTapTime = 0
+        toggleZoom()
+        return
+      } else if (wasTap) {
+        s.lastTapTime = now
+      } else {
+        s.lastTapTime = 0
+      }
+
+      if (s.scale <= 1.01) {
         s.scale = 1
         s.x = 0
         s.y = 0
@@ -110,7 +173,7 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
   }, [src])
 
   return (
-    <div ref={wrapRef} className="pinch-zoom">
+    <div ref={wrapRef} className="pinch-zoom" onDoubleClick={handleDoubleClick}>
       <img ref={imgRef} src={src} alt={alt} className="pinch-zoom__img" draggable={false} />
     </div>
   )
