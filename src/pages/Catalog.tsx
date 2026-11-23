@@ -35,7 +35,7 @@ import { formatPrice, plaquePrice } from '../utils/currency'
 import { scrimGradient, backgroundSizeFor, useBannerDevice } from '../utils/bannerLayout'
 import { isPackageCollection } from '../utils/collections'
 import { registerMobileSearchInput } from '../utils/mobileSearchFocus'
-import { shuffle } from '../utils/shuffle'
+import { shuffleStable } from '../utils/shuffle'
 import type { ComboPartProgress } from '../context/package-builder-context'
 import type { SizePreferences } from '../context/size-preference-context'
 
@@ -1104,11 +1104,13 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
       .getProducts(category ? { category } : {})
       .then((data) => {
         if (ignore) return
-        // Shuffled once per fetch (so it's stable while filtering/paging
-        // within a visit, but different on the next one) — "Todos los
-        // productos" and each category always opened with the same
-        // fixed order, so anything below the fold never got seen.
-        setProducts(shuffle(data))
+        // Randomized order, stable for this whole page load (see
+        // shuffleStable) — "Todos los productos" and each category always
+        // opened with the same fixed order, so anything below the fold
+        // never got seen; this surfaces different ones over time without
+        // the order itself drifting every time the shopper switches
+        // categories or comes back from a product within the same visit.
+        setProducts(shuffleStable(data))
         setLoading(false)
       })
       .catch((err) => {
