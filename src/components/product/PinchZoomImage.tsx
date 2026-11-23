@@ -8,8 +8,17 @@ interface PinchZoomImageProps {
 const MAX_SCALE = 3
 const MIN_SCALE = 1
 const DOUBLE_TAP_ZOOM = 2.5
-const DOUBLE_TAP_MS = 300
-const TAP_MOVE_TOLERANCE = 10
+const DOUBLE_TAP_MS = 400
+// A real finger (unlike a mouse pointer) covers a few mm of screen just
+// from how it lands — a fast tap reports noticeably more drift between
+// its own touchstart/touchend than a slow, deliberate one. 10px rejected
+// a lot of genuine fast taps as "that was a drag, not a tap."
+const TAP_MOVE_TOLERANCE = 28
+// Separately, how far the SECOND tap's start is allowed to land from the
+// first one's — a bit more forgiving than the within-tap jitter above,
+// since two independent taps naturally land with more variance than one
+// continuous press does.
+const DOUBLE_TAP_POSITION_TOLERANCE = 45
 
 function distance(a: Touch, b: Touch) {
   return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
@@ -47,6 +56,8 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
     tapStartY: 0,
     gestureHadMultiTouch: false,
     lastTapTime: 0,
+    lastTapX: 0,
+    lastTapY: 0,
   })
 
   function apply(smooth = false) {
@@ -142,12 +153,15 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
       const moved = changed ? Math.hypot(changed.clientX - s.tapStartX, changed.clientY - s.tapStartY) : Infinity
       const wasTap = !s.gestureHadMultiTouch && moved <= TAP_MOVE_TOLERANCE
       const now = Date.now()
-      if (wasTap && now - s.lastTapTime < DOUBLE_TAP_MS) {
+      const sincePrevTap = Math.hypot(s.tapStartX - s.lastTapX, s.tapStartY - s.lastTapY)
+      if (wasTap && now - s.lastTapTime < DOUBLE_TAP_MS && sincePrevTap <= DOUBLE_TAP_POSITION_TOLERANCE) {
         s.lastTapTime = 0
         toggleZoom()
         return
       } else if (wasTap) {
         s.lastTapTime = now
+        s.lastTapX = s.tapStartX
+        s.lastTapY = s.tapStartY
       } else {
         s.lastTapTime = 0
       }
