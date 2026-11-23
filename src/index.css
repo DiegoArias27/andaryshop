@@ -2863,14 +2863,18 @@ a.hero-banner__layout-el {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  /* Deliberately left at the default (auto), not pan-x/pan-y — those would
-     block the native gesture they don't name at the touch-action level
-     before JS even runs, which would kill either the carousel's own
-     horizontal swipe or vertical page scroll through the photo. The
-     touchmove listener in PinchZoomImage (needs to be non-passive to call
-     preventDefault, which a plain CSS touch-action can't do conditionally)
-     is what scopes the override to just a real pinch or an already-zoomed
-     drag, leaving a plain single-finger touch untouched either way. */
+  /* manipulation (not auto, and not pan-x/pan-y alone) — it still allows
+     BOTH pan-x and pan-y at the touch-action level (unlike naming just one
+     axis, which would kill either the carousel's horizontal swipe or
+     vertical page scroll through the photo), and still lets pinch-zoom
+     through for PinchZoomImage's own non-passive touchmove listener to
+     preventDefault() (a plain CSS touch-action can't conditionally scope
+     that to just a real pinch or an already-zoomed drag the way the JS
+     does). What manipulation actually removes is the browser's OWN
+     double-tap-to-zoom-the-page gesture, which on a real phone was
+     grabbing a double-tap before PinchZoomImage's own double-tap-to-zoom
+     handler ever saw clean touch events for it. */
+  touch-action: manipulation;
 }
 
 .pinch-zoom__img {
