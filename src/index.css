@@ -195,7 +195,7 @@ img {
   /* A dark drop-shadow so the now fully-colored silhouette still pops
      against a light background, instead of just the icy flat shapes. */
   filter: drop-shadow(0 2px 5px rgba(13, 13, 13, 0.35));
-  animation: santa-fly 95s ease-in-out infinite;
+  animation: santa-fly 170s ease-in-out infinite;
   will-change: transform;
 }
 
@@ -205,7 +205,7 @@ img {
    pace closer to mobile's instead of scaling with viewport width. */
 @media (min-width: 1024px) {
   .santa-sleigh {
-    animation-duration: 220s;
+    animation-duration: 395s;
   }
 }
 
@@ -243,31 +243,36 @@ img {
   }
 }
 
+/* The flight itself is compressed into the first ~14% of the cycle (was
+   25% back when the cycle was 95s/220s) so stretching the TOTAL duration
+   above to make it rarer doesn't also slow the crossing itself down — the
+   real-world flight time stays close to what it was before, just with a
+   much longer wait parked off-screen (opacity 0) in between. */
 @keyframes santa-fly {
   0% {
     transform: translate(-30vw, 0);
     opacity: 0;
   }
-  3% {
+  1.7% {
     opacity: 1;
   }
-  9% {
+  5% {
     transform: translate(15vw, -22px);
   }
-  13% {
+  7.3% {
     transform: translate(38vw, 2px);
   }
-  16% {
+  8.9% {
     transform: translate(65vw, 12px);
   }
-  19% {
+  10.6% {
     transform: translate(92vw, -4px);
   }
-  22% {
+  12.3% {
     transform: translate(125vw, -8px);
     opacity: 1;
   }
-  25%,
+  14%,
   100% {
     opacity: 0;
     transform: translate(125vw, -8px);
@@ -759,6 +764,32 @@ img {
   .catalog-toolbar {
     padding: 14px 32px;
   }
+}
+
+/* Shared by any small "pick one of a few presets" row — the neck-type
+   filter under Playeras, the package-type filter atop Paquetes. */
+.pill-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 16px;
+}
+
+.pill-toggle {
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+  color: var(--black);
+  font-size: 16px;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.pill-toggle--active {
+  background: var(--black);
+  color: var(--white);
+  border-color: var(--black);
 }
 
 .category-pills-wrap {

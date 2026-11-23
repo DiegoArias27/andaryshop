@@ -40,8 +40,15 @@ function Reindeer({ x, delay }: { x: number; delay: number }) {
   )
 }
 
+// How long a click's speed-up lasts — just over one full lap at the
+// boosted duration below, so it zips through exactly one fast pass before
+// settling back into its normal, much longer wait.
+const BOOST_DURATION_S = 3
+const BOOST_RESET_MS = (BOOST_DURATION_S + 0.2) * 1000
+
 export default function SantaSleigh() {
   const [enabled, setEnabled] = useState(true)
+  const [boosted, setBoosted] = useState(false)
   const { showToast } = useToast()
 
   useEffect(() => {
@@ -54,10 +61,22 @@ export default function SantaSleigh() {
   function handleClick() {
     showToast('¡Feliz Navidad! 🎄')
     playSleighBells()
+    // Shortening animation-duration on an already-running animation keeps
+    // its current progress but plays the rest back at the new speed —
+    // mid-flight (the only time this button is actually reachable to
+    // click), that reads as the sleigh suddenly rocketing off.
+    setBoosted(true)
+    window.setTimeout(() => setBoosted(false), BOOST_RESET_MS)
   }
 
   return (
-    <button type="button" className="santa-sleigh" onClick={handleClick} aria-label="Sorpresa navideña">
+    <button
+      type="button"
+      className="santa-sleigh"
+      style={boosted ? { animationDuration: `${BOOST_DURATION_S}s` } : undefined}
+      onClick={handleClick}
+      aria-label="Sorpresa navideña"
+    >
       <svg viewBox="0 0 280 70" width="150" height="38" fill="none">
         <line x1="98" y1="30" x2="116" y2="26" stroke="#5c3a1e" strokeWidth="1.5" strokeLinecap="round" />
         <Reindeer x={130} delay={0} />

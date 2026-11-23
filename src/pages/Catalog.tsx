@@ -7,6 +7,7 @@ import type {
   Collection,
   CollectionBundlePart,
   CollectionComboTier,
+  NeckType,
   PackagesTile,
   PageLayoutEntry,
   Product,
@@ -163,6 +164,23 @@ function relevantCategorySlugs(
   if (collection.pricing_mode === 'combo') {
     return new Set(comboPartProgress.filter((p) => p.remaining > 0).map((p) => p.part.category_slug))
   }
+  if (collection.pricing_mode === 'wholesale') {
+    if (collection.wholesale_category_id == null) return new Set()
+    const slug = categories.find((c) => c.id === collection.wholesale_category_id)?.slug
+    return slug ? new Set([slug]) : new Set()
+  }
+  if (collection.bundle_parts.length > 0) {
+    return new Set(collection.bundle_parts.map((p) => p.category_slug))
+  }
+  return new Set(collection.products.map((p) => p.category_slug).filter((s): s is string => !!s))
+}
+
+/** Every category a collection's products/parts span, regardless of combo
+ * build progress — unlike relevantCategorySlugs above (which narrows a
+ * combo down to just what's still missing while actively building one),
+ * this is for classifying collections in a general listing, e.g. the
+ * Paquetes page's Playeras/Sudaderas/Playeras + Sudaderas filter. */
+function allCategorySlugsForCollection(collection: Collection, categories: Category[]): Set<string> {
   if (collection.pricing_mode === 'wholesale') {
     if (collection.wholesale_category_id == null) return new Set()
     const slug = categories.find((c) => c.id === collection.wholesale_category_id)?.slug
@@ -958,6 +976,14 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // showing both alongside the category chips left too little room for
   // Marca, which could overflow the screen on a long brand name.
   const [filtersOpen, setFiltersOpen] = useState(false)
+  // Playera-only, so local state is enough — this section remounts (its
+  // `key` swaps) on every category change, so it's already back to "show
+  // both" the moment the shopper leaves Playeras, without needing to be
+  // wired into CatalogFiltersContext like Talla/Marca.
+  const [neckTypeFilter, setNeckTypeFilter] = useState<Set<NeckType>>(new Set())
+  // Same reset-on-remount reasoning — null (no filter, show every package)
+  // the moment the shopper leaves and comes back to Paquetes.
+  const [packageTypeFilter, setPackageTypeFilter] = useState<'playeras' | 'sudaderas' | 'ambas' | null>(null)
   const [collections, setCollections] = useState<Collection[]>([])
   const [wholesaleTiers, setWholesaleTiers] = useState<WholesaleTier[]>([])
   const [homePromoBanners, setHomePromoBanners] = useState<Banner[]>([])
@@ -1132,10 +1158,12 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
       const inStock = p.variants.some((v) => v.stock > 0)
       const sizeOk = selectedSizes.length === 0 || p.variants.some((v) => selectedSizes.includes(v.size))
       const brandOk = selectedBrands.length === 0 || (!!p.brand_name && selectedBrands.includes(p.brand_name))
+      const neckOk =
+        category !== 'playeras' || neckTypeFilter.size === 0 || (!!p.neck_type && neckTypeFilter.has(p.neck_type))
       const searchOk = !term || p.name.toLowerCase().includes(term) || (p.description ?? '').toLowerCase().includes(term)
-      return inStock && sizeOk && brandOk && searchOk
+      return inStock && sizeOk && brandOk && neckOk && searchOk
     })
-  }, [products, selectedSizes, selectedBrands, searchTerm])
+  }, [products, selectedSizes, selectedBrands, neckTypeFilter, category, searchTerm])
 
   // One representative photo per real category, plus one for the "Paquetes"
   // tile (any product that belongs to at least one package) — reused from
@@ -1372,29 +1400,67 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
             </section>
           ) : packagesOnly ? (
             <>
-              {pageLayout?.map((entry) => {
-                if (entry.type === 'banner') {
-                  const b = packagesPromoBanners.find((x) => x.id === entry.id)
-                  return b ? <PromoBanner key={`banner-${b.id}`} banner={b} fallbackImage={packagesTileImage} /> : null
-                }
-                if (entry.type === 'collection') {
-                  const c = collections.find((x) => x.id === entry.id)
-                  return c ? (
-                    <CollectionSection
-                      key={`collection-${c.id}`}
-                      collection={c}
-                      categories={categories}
-                      wholesaleTiers={wholesaleTiers}
-                      selectedSizes={selectedSizes}
-                      selectedBrands={selectedBrands}
-                    />
-                  ) : null
-                }
-                return null
-              })}
-              {!pageLayout?.some((e) => e.type === 'collection') && (
-                <p className="state-msg">Aún no hay paquetes configurados.</p>
+              {collections.length > 0 && (
+                <div className="pill-toggle-row">
+                  {(['playeras', 'sudaderas', 'ambas'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      className={`pill-toggle ${packageTypeFilter === opt ? 'pill-toggle--active' : ''}`}
+                      aria-pressed={packageTypeFilter === opt}
+                      onClick={() => setPackageTypeFilter((prev) => (prev === opt ? null : opt))}
+                    >
+                      {opt === 'playeras' ? 'Playeras' : opt === 'sudaderas' ? 'Sudaderas' : 'Playeras + Sudaderas'}
+                    </button>
+                  ))}
+                </div>
               )}
+              {(() => {
+                const collectionEntries = (pageLayout ?? []).filter((e) => e.type === 'collection')
+                const visibleCollectionIds = new Set(
+                  collectionEntries
+                    .map((e) => collections.find((c) => c.id === e.id))
+                    .filter((c): c is Collection => {
+                      if (!c) return false
+                      if (!packageTypeFilter) return true
+                      const slugs = allCategorySlugsForCollection(c, categories)
+                      if (packageTypeFilter === 'playeras') return slugs.size === 1 && slugs.has('playeras')
+                      if (packageTypeFilter === 'sudaderas') return slugs.size === 1 && slugs.has('sudaderas')
+                      return slugs.has('playeras') && slugs.has('sudaderas')
+                    })
+                    .map((c) => c.id)
+                )
+                return (
+                  <>
+                    {pageLayout?.map((entry) => {
+                      if (entry.type === 'banner') {
+                        const b = packagesPromoBanners.find((x) => x.id === entry.id)
+                        return b ? <PromoBanner key={`banner-${b.id}`} banner={b} fallbackImage={packagesTileImage} /> : null
+                      }
+                      if (entry.type === 'collection') {
+                        const c = collections.find((x) => x.id === entry.id)
+                        return c && visibleCollectionIds.has(c.id) ? (
+                          <CollectionSection
+                            key={`collection-${c.id}`}
+                            collection={c}
+                            categories={categories}
+                            wholesaleTiers={wholesaleTiers}
+                            selectedSizes={selectedSizes}
+                            selectedBrands={selectedBrands}
+                          />
+                        ) : null
+                      }
+                      return null
+                    })}
+                    {collectionEntries.length === 0 && (
+                      <p className="state-msg">Aún no hay paquetes configurados.</p>
+                    )}
+                    {collectionEntries.length > 0 && visibleCollectionIds.size === 0 && (
+                      <p className="state-msg">Ningún paquete coincide con el filtro.</p>
+                    )}
+                  </>
+                )
+              })()}
             </>
           ) : !category ? (
             <>
@@ -1463,6 +1529,28 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
                 <PromoBanner key={b.id} banner={b} fallbackImage={null} />
               ))}
               <h2>{categoryName}</h2>
+              {category === 'playeras' && (
+                <div className="pill-toggle-row">
+                  {(['redondo', 'polo'] as const).map((nt) => (
+                    <button
+                      key={nt}
+                      type="button"
+                      className={`pill-toggle ${neckTypeFilter.has(nt) ? 'pill-toggle--active' : ''}`}
+                      aria-pressed={neckTypeFilter.has(nt)}
+                      onClick={() =>
+                        setNeckTypeFilter((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(nt)) next.delete(nt)
+                          else next.add(nt)
+                          return next
+                        })
+                      }
+                    >
+                      {nt === 'redondo' ? 'Cuello redondo' : 'Tipo polo'}
+                    </button>
+                  ))}
+                </div>
+              )}
               {activeComboPart && (
                 <p className="section__promo">
                   Selecciona {activeComboPart.remaining} {activeComboPart.part.category_name}
