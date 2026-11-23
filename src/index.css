@@ -5013,14 +5013,25 @@ a.hero-banner__layout-el {
   background: var(--gray-100);
 }
 
-.order-status__banner--confirmed .order-status__badge {
+.order-status__banner--missing .order-status__badge {
   background: color-mix(in srgb, var(--red) 12%, transparent);
   color: var(--red);
 }
 
-.order-status__banner--pending .order-status__badge {
+.order-status__banner--pending .order-status__badge,
+.order-status__banner--packaging .order-status__badge {
   background: color-mix(in srgb, var(--amber) 15%, transparent);
   color: var(--amber);
+}
+
+.order-status__banner--delivered .order-status__badge {
+  background: color-mix(in srgb, var(--black) 10%, transparent);
+  color: var(--black);
+}
+
+.order-status__banner--cancelled .order-status__badge {
+  background: var(--gray-100);
+  color: var(--gray-600);
 }
 
 .order-status__items {

@@ -386,6 +386,9 @@ export interface PublicOrder {
   id: number
   token: string
   status: 'pending' | 'confirmed' | 'cancelled'
+  /** The actual stage shown on /pedido/:token — pago faltante → pedido
+   * pendiente → empaquetando → entregado. Null for a POS sale. */
+  fulfillmentStatus: 'missing' | 'pending' | 'packaging' | 'delivered' | null
   source: 'whatsapp' | 'pos'
   discountAmount: number
   paymentMethod: string | null

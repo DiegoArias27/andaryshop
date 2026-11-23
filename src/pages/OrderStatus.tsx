@@ -9,15 +9,32 @@ import { useToast } from '../hooks/useToast'
 import { BackIcon, CheckIcon, CloseIcon, CopyIcon, WhatsappIcon } from '../components/icons'
 import { formatPrice } from '../utils/currency'
 
-const STATUS_LABELS: Record<PublicOrder['status'], string> = {
-  pending: 'Pendiente de confirmación',
-  confirmed: 'Confirmado',
+// What actually shows here is the fulfillment stage (missing → pending →
+// packaging → delivered), not the plain status's pending/confirmed —
+// that's internal bookkeeping, "¿ya empaquetamos?/¿ya se entregó?" is what
+// the customer actually wants to know. Cancelled overrides it outright,
+// since a cancelled order's fulfillmentStatus is just whatever it was
+// frozen at and means nothing anymore.
+type DisplayStage = 'missing' | 'pending' | 'packaging' | 'delivered' | 'cancelled'
+
+function displayStage(order: PublicOrder): DisplayStage {
+  if (order.status === 'cancelled') return 'cancelled'
+  return order.fulfillmentStatus ?? 'missing'
+}
+
+const STAGE_LABELS: Record<DisplayStage, string> = {
+  missing: 'Pago faltante',
+  pending: 'Pedido pendiente',
+  packaging: 'Empaquetando',
+  delivered: 'Entregado',
   cancelled: 'Cancelado',
 }
 
-const STATUS_HINTS: Record<PublicOrder['status'], string> = {
-  pending: 'Ya llegó tu pedido — en cuanto lo confirmemos por WhatsApp verás el cambio aquí.',
-  confirmed: '¡Tu pedido ya está confirmado!',
+const STAGE_HINTS: Record<DisplayStage, string> = {
+  missing: 'Ya llegó tu pedido — en cuanto confirmemos tu pago por WhatsApp, verás el cambio aquí.',
+  pending: '¡Recibimos tu pago! Tu pedido está confirmado y pronto empezaremos a empacarlo.',
+  packaging: 'Estamos empacando tu pedido.',
+  delivered: '¡Tu pedido fue entregado! Gracias por tu compra.',
   cancelled: 'Este pedido fue cancelado.',
 }
 
@@ -115,9 +132,9 @@ export default function OrderStatus() {
 
         {order && !loading && (
           <div className="order-status">
-            <div className={`order-status__banner order-status__banner--${order.status}`}>
-              <span className="order-status__badge">{STATUS_LABELS[order.status]}</span>
-              <p>{STATUS_HINTS[order.status]}</p>
+            <div className={`order-status__banner order-status__banner--${displayStage(order)}`}>
+              <span className="order-status__badge">{STAGE_LABELS[displayStage(order)]}</span>
+              <p>{STAGE_HINTS[displayStage(order)]}</p>
             </div>
 
             {!customer && (
