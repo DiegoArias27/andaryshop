@@ -21,21 +21,22 @@ export function HeartIcon({ filled = false, ...props }: IconProps & { filled?: b
   )
 }
 
-export function AccountIcon(props: IconProps) {
+export function AccountIcon({ filled = false, ...props }: IconProps & { filled?: boolean }) {
   return (
-    <svg {...base} {...props}>
+    <svg {...base} fill={filled ? 'currentColor' : 'none'} {...props}>
       <circle cx="12" cy="8" r="3.5" />
       <path d="M4.5 20c1.2-3.8 4-5.8 7.5-5.8s6.3 2 7.5 5.8" />
     </svg>
   )
 }
 
-export function ShopIcon(props: IconProps) {
+/** A plain house silhouette — used for "Inicio" in BottomNav instead of
+ * ShopIcon's storefront-with-awning shape, which read more like "the
+ * catalog" than "home". */
+export function HomeIcon({ filled = false, ...props }: IconProps & { filled?: boolean }) {
   return (
-    <svg {...base} {...props}>
-      <path d="M4 9.5 5.2 4h13.6L20 9.5" />
-      <path d="M4 9.5h16v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-9Z" />
-      <path d="M9 13a3 3 0 0 0 6 0" />
+    <svg {...base} fill={filled ? 'currentColor' : 'none'} {...props}>
+      <path d="M12 3 20 10.5 20 20 4 20 4 10.5Z" />
     </svg>
   )
 }
@@ -108,10 +109,10 @@ export function WhatsappIcon(props: IconProps) {
   )
 }
 
-export function SearchIcon(props: IconProps) {
+export function SearchIcon({ filled = false, ...props }: IconProps & { filled?: boolean }) {
   return (
     <svg {...base} {...props}>
-      <circle cx="11" cy="11" r="7" />
+      <circle cx="11" cy="11" r="7" fill={filled ? 'currentColor' : 'none'} />
       <path d="m21 21-4.3-4.3" />
     </svg>
   )

@@ -51,9 +51,6 @@ export default function CategoryPills({
   return (
     <div className="category-pills-wrap">
       <div className="category-pills" data-tour="categories" ref={scrollRef}>
-        <button className={`pill ${activeSlug === null && !packagesActive ? 'pill--active' : ''}`} onClick={() => onSelect(null)}>
-          Inicio
-        </button>
         {categories.map((category) => (
           <button
             key={category.id}

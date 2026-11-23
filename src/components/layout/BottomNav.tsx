@@ -1,6 +1,6 @@
 import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
-import { AccountIcon, HeartIcon, SearchIcon, ShopIcon } from '../icons'
+import { AccountIcon, HeartIcon, HomeIcon, SearchIcon } from '../icons'
 import { showAndFocusMobileSearchInput } from '../../utils/mobileSearchFocus'
 
 export default function BottomNav() {
@@ -33,23 +33,35 @@ export default function BottomNav() {
   return (
     <nav className="bottom-nav">
       <NavLink to="/" end className="bottom-nav__item">
-        <ShopIcon />
-        <span>Shop</span>
+        {({ isActive }) => (
+          <>
+            <HomeIcon filled={isActive} />
+            <span>Inicio</span>
+          </>
+        )}
       </NavLink>
       <button type="button" className="bottom-nav__item" onClick={handleSearchClick}>
-        <SearchIcon />
+        <SearchIcon filled={searchOpen} />
         <span>Buscar</span>
       </button>
       <NavLink to="/favoritos" className="bottom-nav__item">
-        <HeartIcon />
-        <span>Favoritos</span>
+        {({ isActive }) => (
+          <>
+            <HeartIcon filled={isActive} />
+            <span>Favoritos</span>
+          </>
+        )}
       </NavLink>
       <NavLink to="/cuenta" className="bottom-nav__item" data-tour="account-nav">
-        <span className="bottom-nav__icon-wrap">
-          <AccountIcon />
-          {customer && <span className="bottom-nav__dot" />}
-        </span>
-        <span>Cuenta</span>
+        {({ isActive }) => (
+          <>
+            <span className="bottom-nav__icon-wrap">
+              <AccountIcon filled={isActive} />
+              {customer && <span className="bottom-nav__dot" />}
+            </span>
+            <span>Cuenta</span>
+          </>
+        )}
       </NavLink>
     </nav>
   )

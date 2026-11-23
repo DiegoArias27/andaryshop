@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCart } from '../../hooks/useCart'
 import { useCartPricing } from '../../hooks/useCartPricing'
 import { useCustomerAuth } from '../../hooks/useCustomerAuth'
@@ -25,9 +25,20 @@ export default function CartDrawer() {
   const totalSavings =
     breakdown.wholesaleSavings + breakdown.discountSavings + breakdown.collectionSavings + breakdown.customerSavings
   const navigate = useNavigate()
+  const location = useLocation()
   const liveProducts = useLiveProducts()
   const { showToast } = useToast()
   useBodyScrollLock(drawerOpen)
+  // iOS Safari's edge-swipe-back gesture navigates regardless of any open
+  // overlay on the page — nothing about this drawer being a plain piece of
+  // React state (not tied to the URL at all) ever closed it on its own, so
+  // swiping back left it stuck open (and the page scroll still locked, see
+  // useBodyScrollLock) on top of whatever page it swiped back to. Closes it
+  // on every navigation, however it happened, not just that gesture.
+  useEffect(() => {
+    if (drawerOpen) closeDrawer()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key])
   const [sentOrder, setSentOrder] = useState<RecordedOrder | null>(null)
   // The cart emptying out while the drawer is still open (the last item
   // removed, quantity dropped to 0, or every item just got swept into a

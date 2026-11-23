@@ -142,6 +142,47 @@ img {
   position: relative;
 }
 
+.snowfall {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.snowfall__flake {
+  position: absolute;
+  top: -10%;
+  /* A fixed icy blue rather than --black/--white — those are "ink"/"paper"
+     tokens that flip in dark mode, which would turn these solid black
+     (invisible against a dark background) instead of staying a soft,
+     theme-independent glow either way. */
+  color: #bfe3ff;
+  text-shadow: 0 0 4px rgba(191, 227, 255, 0.8);
+  animation-name: snowfall-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes snowfall-fall {
+  0% {
+    transform: translate(0, -10vh);
+  }
+  25% {
+    transform: translate(calc(var(--snowfall-drift) * -1), 25vh);
+  }
+  50% {
+    transform: translate(0, 50vh);
+  }
+  75% {
+    transform: translate(var(--snowfall-drift), 75vh);
+  }
+  100% {
+    transform: translate(0, 110vh);
+  }
+}
+
 .app-main {
   flex: 1;
   display: flex;
