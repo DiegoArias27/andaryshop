@@ -152,6 +152,18 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
       const changed = e.changedTouches[0]
       const moved = changed ? Math.hypot(changed.clientX - s.tapStartX, changed.clientY - s.tapStartY) : Infinity
       const wasTap = !s.gestureHadMultiTouch && moved <= TAP_MOVE_TOLERANCE
+
+      if (wasTap) {
+        // Stops the browser from ALSO synthesizing its own click/dblclick
+        // from this same touch — without this, a FAST double-tap could
+        // toggle the zoom here and then, a beat later, toggle it right
+        // back via the synthetic dblclick calling handleDoubleClick a
+        // second time. A slow double-tap didn't trigger that synthesis
+        // (browsers only do it within their own short window), which is
+        // exactly why it worked "if I do it slowly" but not fast.
+        e.preventDefault()
+      }
+
       const now = Date.now()
       const sincePrevTap = Math.hypot(s.tapStartX - s.lastTapX, s.tapStartY - s.lastTapY)
       if (wasTap && now - s.lastTapTime < DOUBLE_TAP_MS && sincePrevTap <= DOUBLE_TAP_POSITION_TOLERANCE) {
@@ -176,8 +188,10 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
 
     wrap.addEventListener('touchstart', onTouchStart, { passive: true })
     wrap.addEventListener('touchmove', onTouchMove, { passive: false })
-    wrap.addEventListener('touchend', onTouchEnd, { passive: true })
-    wrap.addEventListener('touchcancel', onTouchEnd, { passive: true })
+    // Not passive — onTouchEnd needs to call preventDefault() for a tap,
+    // to block the browser's own synthetic click/dblclick for it.
+    wrap.addEventListener('touchend', onTouchEnd, { passive: false })
+    wrap.addEventListener('touchcancel', onTouchEnd, { passive: false })
     return () => {
       wrap.removeEventListener('touchstart', onTouchStart)
       wrap.removeEventListener('touchmove', onTouchMove)
