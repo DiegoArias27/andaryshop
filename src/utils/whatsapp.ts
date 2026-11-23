@@ -30,23 +30,33 @@ export function goToWhatsapp(tab: Window | null, url: string): void {
   else window.open(url, '_blank', 'noopener,noreferrer')
 }
 
+/** What recordOrder (below) resolves to — null on failure. */
+export interface RecordedOrder {
+  id: number
+  /** Unguessable token for the public /pedido/:token page — see
+   * getOrderByToken on the backend. */
+  token: string
+}
+
 // Prices are intentionally left out of the message: it's plain text the
 // customer can edit before sending, so it must never be treated as a
 // trustworthy price quote. Totals are confirmed by the seller over chat.
 // wa.me links can only pre-fill text, never attach an image — a product
 // link is the closest practical substitute: the seller taps it and sees
 // the actual photo (and everything else about the item) on the site.
-// `folio` (the order's own id, from recordOrder below) lets the seller match
-// this exact chat to the right row in Pedidos — without it, two customers
-// ordering the same thing look identical in the admin panel. Called
-// "pedido #" in the message itself (not "folio") since that's the term a
-// customer actually recognizes.
-export function buildWhatsappOrderUrl(items: CartItem[], notes: string, folio?: number | null): string {
+// `order` (from recordOrder below) lets the seller match this exact chat to
+// the right row in Pedidos — without its id, two customers ordering the
+// same thing look identical in the admin panel. Called "pedido #" in the
+// message itself (not "folio") since that's the term a customer actually
+// recognizes. Its token builds a link the customer can reopen later (or
+// share back with the seller) to see this exact order's status, without
+// needing an account.
+export function buildWhatsappOrderUrl(items: CartItem[], notes: string, order?: RecordedOrder | null): string {
   const phone = import.meta.env.VITE_WHATSAPP_NUMBER
   const origin = window.location.origin
 
   const lines = [
-    folio ? `Hola! Quiero hacer el pedido #${folio} en ANDARY SHOP:` : 'Hola! Quiero hacer un pedido en ANDARY SHOP:',
+    order ? `Hola! Quiero hacer el pedido #${order.id} en ANDARY SHOP:` : 'Hola! Quiero hacer un pedido en ANDARY SHOP:',
     '',
     ...items.map(
       (item) =>
@@ -60,23 +70,29 @@ export function buildWhatsappOrderUrl(items: CartItem[], notes: string, folio?: 
     lines.push('', `Notas: ${notes.trim()}`)
   }
 
+  if (order) {
+    lines.push('', `Para ver el estado de tu pedido: ${origin}/pedido/${order.token}`)
+  }
+
   const text = encodeURIComponent(lines.join('\n'))
   return `https://wa.me/${phone}?text=${text}`
 }
 
 /** Records the order in the admin's Pedidos page, right before sending it to
- * WhatsApp, and returns its id to use as the folio in the message — so the
- * seller can match an incoming chat to the right row (two people ordering
- * the same thing otherwise look identical in the admin panel). Best-effort:
- * on failure returns null and the message just goes out without a folio,
- * since a logging hiccup must never block the customer's actual WhatsApp
- * message. Starts 'pending'; the admin confirms it (and stock is deducted)
- * from the panel. Takes the actually-charged unit price per item (not
- * item.price, which is only the raw catalog price — a wholesale/collection/
- * package discount can make the real price different) so sales totals in
- * the admin are accurate. An item already flagged `preorder` (out of stock
- * at add-time) is recorded as an availability inquiry, not a real sale —
- * shown distinctly in Pedidos and blocked from confirming until restocked. */
+ * WhatsApp, and returns its id/token — the id becomes the folio in the
+ * message (so the seller can match an incoming chat to the right row,
+ * since two people ordering the same thing otherwise look identical in the
+ * admin panel), the token becomes the /pedido/:token tracking link.
+ * Best-effort: on failure returns null and the message just goes out
+ * without either, since a logging hiccup must never block the customer's
+ * actual WhatsApp message. Starts 'pending'; the admin confirms it (and
+ * stock is deducted) from the panel. Takes the actually-charged unit price
+ * per item (not item.price, which is only the raw catalog price — a
+ * wholesale/collection/package discount can make the real price different)
+ * so sales totals in the admin are accurate. An item already flagged
+ * `preorder` (out of stock at add-time) is recorded as an availability
+ * inquiry, not a real sale — shown distinctly in Pedidos and blocked from
+ * confirming until restocked. */
 export async function recordOrder(
   items: {
     item: CartItem
@@ -92,9 +108,9 @@ export async function recordOrder(
     isGift?: boolean
   }[],
   notes: string
-): Promise<number | null> {
+): Promise<RecordedOrder | null> {
   try {
-    const { id } = await api.createOrder({
+    const { id, token } = await api.createOrder({
       items: items.map(({ item, unitPrice, quantity, collectionId, collectionName, tierKey, isGift }) => ({
         productId: item.productId,
         size: item.size,
@@ -111,7 +127,7 @@ export async function recordOrder(
       })),
       notes: notes.trim() || undefined,
     })
-    return id
+    return { id, token }
   } catch {
     return null
   }
@@ -124,19 +140,23 @@ export async function recordOrder(
  * regular pending sale. */
 export function buildWhatsappNotifyUrl(
   item: { name: string; size: string; colorName: string; slug: string },
-  folio?: number | null
+  order?: RecordedOrder | null
 ): string {
   const phone = import.meta.env.VITE_WHATSAPP_NUMBER
   const origin = window.location.origin
 
   const lines = [
-    folio
-      ? `Hola! ¿Me pueden avisar cuando vuelva a haber stock de este producto? (pedido #${folio})`
+    order
+      ? `Hola! ¿Me pueden avisar cuando vuelva a haber stock de este producto? (pedido #${order.id})`
       : 'Hola! ¿Me pueden avisar cuando vuelva a haber stock de este producto?',
     '',
     `• ${item.name} — Talla ${item.size}, Color ${item.colorName}`,
     `  ${origin}/producto/${item.slug}`,
   ]
+
+  if (order) {
+    lines.push('', `Para ver el estado de tu aviso: ${origin}/pedido/${order.token}`)
+  }
 
   const text = encodeURIComponent(lines.join('\n'))
   return `https://wa.me/${phone}?text=${text}`

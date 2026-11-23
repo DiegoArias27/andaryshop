@@ -9,12 +9,13 @@ import { usePulseDirection } from '../../hooks/usePulseDirection'
 import { useToast } from '../../hooks/useToast'
 import { variantStock } from '../../utils/stock'
 import { formatPrice } from '../../utils/currency'
-import { buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder } from '../../utils/whatsapp'
+import { buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder, type RecordedOrder } from '../../utils/whatsapp'
 import { groupByPackage } from '../../utils/cartGroups'
 import { CloseIcon, EditIcon, MinusIcon, PlusIcon, TrashIcon, WhatsappIcon } from '../icons'
 import type { CartItem } from '../../context/cart-context'
 import { expandPricedItemForOrder, type PricedItem } from '../../utils/pricing'
 import type { EditCartItemState } from '../../pages/ProductDetail'
+import OrderLinkNotice from './OrderLinkNotice'
 
 export default function CartDrawer() {
   const { items, updateQuantity, removeItem, removeItems, drawerOpen, closeDrawer } = useCart()
@@ -27,16 +28,19 @@ export default function CartDrawer() {
   const liveProducts = useLiveProducts()
   const { showToast } = useToast()
   useBodyScrollLock(drawerOpen)
+  const [sentOrder, setSentOrder] = useState<RecordedOrder | null>(null)
   // The cart emptying out while the drawer is still open (the last item
   // removed, quantity dropped to 0, or every item just got swept into a
   // sent order) leaves this component rendering null — see the early
   // return below — with nothing left to ever call closeDrawer(). Left
   // alone, useBodyScrollLock above keeps the page's scroll locked
-  // indefinitely with no visible drawer left to explain why.
+  // indefinitely with no visible drawer left to explain why. Skipped right
+  // after sending an order (sentOrder set) — that's the one chance to hand
+  // a guest the link to it, so the drawer staying open on purpose.
   useEffect(() => {
-    if (drawerOpen && items.length === 0) closeDrawer()
+    if (drawerOpen && items.length === 0 && !sentOrder) closeDrawer()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawerOpen, items.length])
+  }, [drawerOpen, items.length, sentOrder])
   const totalPulse = usePulseDirection(totalPrice)
 
   // Keyed per cart line (not per button) so tapping + or − rings that one
@@ -52,7 +56,7 @@ export default function CartDrawer() {
     return `${item.productId}-${item.size}-${item.colorName}-${item.isGift ? 'gift' : 'paid'}`
   }
 
-  if (items.length === 0) return null
+  if (items.length === 0 && !sentOrder) return null
 
   function isOutOfStock(item: CartItem) {
     const live = variantStock(liveProducts, item.productId, item.size, item.colorName)
@@ -73,7 +77,7 @@ export default function CartDrawer() {
   async function handleSendOrder() {
     const whatsappTab = openWhatsappTab()
     const enriched = items.map((item) => ({ ...item, preorder: isOutOfStock(item) }))
-    const folio = await recordOrder(
+    const order = await recordOrder(
       pricedItems.flatMap((p) =>
         expandPricedItemForOrder(p).map((seg) => ({
           item: { ...seg.item, preorder: isOutOfStock(seg.item) },
@@ -87,7 +91,8 @@ export default function CartDrawer() {
       ),
       ''
     )
-    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl(enriched, '', folio))
+    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl(enriched, '', order))
+    setSentOrder(order)
     removeItems((item) => !isOutOfStock(item))
   }
 
@@ -234,6 +239,10 @@ export default function CartDrawer() {
             <CloseIcon />
           </button>
         </div>
+
+        {sentOrder && (
+          <OrderLinkNotice order={sentOrder} loggedIn={!!customer} onClose={() => setSentOrder(null)} />
+        )}
 
         <div className="cart-drawer__scroll">
           {groupByPackage(inStockItems).map((group, i) => (

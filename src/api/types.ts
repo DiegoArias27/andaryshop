@@ -360,3 +360,34 @@ export interface WholesaleTier {
    * derived collections.most_chosen_tier_key pick. */
   is_featured: number
 }
+
+export interface PublicOrderItem {
+  productId: number | null
+  name: string
+  size: string | null
+  colorName: string | null
+  image: string | null
+  unitPrice: number
+  quantity: number
+  discountAmount: number
+  isGift: boolean
+  isPreorder: boolean
+}
+
+/** What /pedido/:token (see OrderStatus.tsx) and Mis pedidos (Account.tsx)
+ * both render from — the backend's publicOrderFields, deliberately
+ * stripped of anything PII (customer_id, guest_phone, the joined
+ * customer's name/phone) since the public one needs no auth at all, just
+ * the unguessable token. */
+export interface PublicOrder {
+  id: number
+  token: string
+  status: 'pending' | 'confirmed' | 'cancelled'
+  source: 'whatsapp' | 'pos'
+  discountAmount: number
+  paymentMethod: string | null
+  createdAt: string
+  confirmedAt: string | null
+  items: PublicOrderItem[]
+  total: number
+}

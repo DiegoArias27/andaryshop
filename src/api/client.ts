@@ -8,6 +8,7 @@ import type {
   PageLayoutEntry,
   PageLayoutPage,
   Product,
+  PublicOrder,
   WholesaleTier,
 } from './types'
 import type { Customer } from '../context/customer-auth-context'
@@ -126,7 +127,14 @@ export const api = {
       tierKey?: string | null
     }[]
     notes?: string
-  }) => request<{ id: number }>('/orders', { method: 'POST', body: JSON.stringify(data) }),
+  }) => request<{ id: number; token: string }>('/orders', { method: 'POST', body: JSON.stringify(data) }),
+  // Public — the token alone (from the WhatsApp message/Mis pedidos) is
+  // what authorizes this, no login needed. See OrderStatus.tsx.
+  getOrderByToken: (token: string) => request<PublicOrder>(`/orders/public/${token}`),
+  // Only ever shows what was placed while actually logged in — a guest
+  // order has no way to retroactively attach to an account. See
+  // Account.tsx's "Mis pedidos".
+  getMyOrders: () => request<PublicOrder[]>('/orders/mine'),
 
   loginCustomerWithGoogle: (idToken: string) =>
     request<{ token: string; customer: Customer }>('/customers/google', {

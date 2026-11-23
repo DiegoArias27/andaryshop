@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import Header from '../components/layout/Header'
 import GoogleSignInButton from '../components/account/GoogleSignInButton'
 import { api } from '../api/client'
-import type { Category } from '../api/types'
+import type { Category, PublicOrder } from '../api/types'
+import { formatPrice } from '../utils/currency'
 import { useCustomerAuth } from '../hooks/useCustomerAuth'
 import { useCart } from '../hooks/useCart'
 import { useFavorites } from '../hooks/useFavorites'
@@ -13,6 +14,60 @@ import type { ThemeMode } from '../context/theme-context'
 import { BackIcon, HeartIcon, CartIcon, SunIcon, MoonIcon, SystemIcon } from '../components/icons'
 import TutorialChoiceModal from '../components/tour/TutorialChoiceModal'
 import AccountSkeleton from '../components/account/AccountSkeleton'
+
+const ORDER_STATUS_LABELS: Record<PublicOrder['status'], string> = {
+  pending: 'Pendiente',
+  confirmed: 'Confirmado',
+  cancelled: 'Cancelado',
+}
+
+function formatOrderDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch {
+    return iso
+  }
+}
+
+/** Only ever shows orders placed while actually logged in — createOrder
+ * stamps customer_id from the auth header at creation time, and there's no
+ * way to retroactively attach a guest order to an account afterward. */
+function MyOrdersSection() {
+  const [orders, setOrders] = useState<PublicOrder[] | null>(null)
+
+  useEffect(() => {
+    api
+      .getMyOrders()
+      .then(setOrders)
+      .catch(() => setOrders([]))
+  }, [])
+
+  if (!orders || orders.length === 0) return null
+
+  return (
+    <div className="appearance-card">
+      <h3 className="appearance-card__title">Mis pedidos</h3>
+      <ul className="my-orders__list">
+        {orders.map((o) => (
+          <li key={o.id}>
+            <Link to={`/pedido/${o.token}`} className="my-orders__item">
+              <div className="my-orders__item-info">
+                <span className="my-orders__item-folio">Pedido #{o.id}</span>
+                <span className="my-orders__item-meta">
+                  {formatOrderDate(o.createdAt)} · {o.items.reduce((sum, i) => sum + i.quantity, 0)} artículo(s) ·{' '}
+                  {formatPrice(o.total)}
+                </span>
+              </div>
+              <span className={`my-orders__item-status my-orders__item-status--${o.status}`}>
+                {ORDER_STATUS_LABELS[o.status]}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/)
@@ -68,6 +123,7 @@ function Profile() {
         </Link>
       </div>
 
+      <MyOrdersSection />
       <AppearanceSection />
       <SizePreferenceSection />
       <TourResetSection />

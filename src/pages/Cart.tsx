@@ -8,9 +8,10 @@ import { usePulseDirection } from '../hooks/usePulseDirection'
 import { useToast } from '../hooks/useToast'
 import { variantStock } from '../utils/stock'
 import { formatPrice } from '../utils/currency'
-import { buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder } from '../utils/whatsapp'
+import { buildWhatsappOrderUrl, goToWhatsapp, openWhatsappTab, recordOrder, type RecordedOrder } from '../utils/whatsapp'
 import { groupByPackage } from '../utils/cartGroups'
 import Header from '../components/layout/Header'
+import OrderLinkNotice from '../components/cart/OrderLinkNotice'
 import { BackIcon, EditIcon, MinusIcon, PlusIcon, TrashIcon, WhatsappIcon } from '../components/icons'
 import type { CartItem } from '../context/cart-context'
 import { buildBreakdown, expandPricedItemForOrder, type PricedItem } from '../utils/pricing'
@@ -22,6 +23,7 @@ export default function Cart() {
   const { customer } = useCustomerAuth()
   const customerDiscount = customer?.discountAmount ?? 0
   const [notes, setNotes] = useState('')
+  const [sentOrder, setSentOrder] = useState<RecordedOrder | null>(null)
   const navigate = useNavigate()
   const liveProducts = useLiveProducts()
   const { showToast } = useToast()
@@ -70,7 +72,7 @@ export default function Cart() {
     // "avísame" inquiry riding along in the same message (see the plain
     // AGOTADO card below instead of the old editable "pendientes de
     // disponibilidad" section).
-    const folio = await recordOrder(
+    const order = await recordOrder(
       inStockItems.flatMap((p) =>
         expandPricedItemForOrder(p).map((seg) => ({
           item: seg.item,
@@ -84,7 +86,8 @@ export default function Cart() {
       ),
       notes
     )
-    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl(inStockItems.map((p) => p.item), notes, folio))
+    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl(inStockItems.map((p) => p.item), notes, order))
+    setSentOrder(order)
     // Only the sent, in-stock items leave the cart — an out-of-stock line
     // stays put so the customer can still see it (or remove it) later.
     removeItems((item) => !isOutOfStock(item))
@@ -265,6 +268,10 @@ export default function Cart() {
           </Link>
           <h1>Tu carrito</h1>
         </div>
+
+        {sentOrder && (
+          <OrderLinkNotice order={sentOrder} loggedIn={!!customer} onClose={() => setSentOrder(null)} />
+        )}
 
         {items.length === 0 ? (
           <div className="empty-state">

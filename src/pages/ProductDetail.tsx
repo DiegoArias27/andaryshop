@@ -376,22 +376,22 @@ function ProductDetail({ slug }: { slug: string }) {
       preorder: isOut,
     }
     // Opened synchronously so it isn't blocked by the popup blocker — its
-    // location is filled in once the folio comes back.
+    // location is filled in once the order comes back.
     const whatsappTab = openWhatsappTab()
-    const folio = await recordOrder([{ item, unitPrice: parseFloat(product.price) }], '')
+    const order = await recordOrder([{ item, unitPrice: parseFloat(product.price) }], '')
 
     if (isOut) {
       goToWhatsapp(
         whatsappTab,
         buildWhatsappNotifyUrl(
           { name: product.name, size: activeVariant.size, colorName: activeVariant.color_name, slug: product.slug },
-          folio
+          order
         )
       )
       return
     }
 
-    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl([item], '', folio))
+    goToWhatsapp(whatsappTab, buildWhatsappOrderUrl([item], '', order))
   }
 
   function handlePickForPackage() {

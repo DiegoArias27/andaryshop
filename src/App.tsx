@@ -24,6 +24,7 @@ import Cart from './pages/Cart'
 import Favorites from './pages/Favorites'
 import Account from './pages/Account'
 import Cotizador from './pages/Cotizador'
+import OrderStatus from './pages/OrderStatus'
 import NotFound from './pages/NotFound'
 
 function Layout() {
@@ -32,7 +33,10 @@ function Layout() {
   // The package picker bar is about building a selection while browsing the
   // catalog — showing it over the account page (login/orders/profile) makes
   // no sense there and just floats an orphaned "cancelar selección" pill.
-  const hidePackagePicker = location.pathname.startsWith('/cuenta') || location.pathname.startsWith('/cotizador')
+  const hidePackagePicker =
+    location.pathname.startsWith('/cuenta') ||
+    location.pathname.startsWith('/cotizador') ||
+    location.pathname.startsWith('/pedido')
 
   return (
     <div className="app-shell">
@@ -46,6 +50,7 @@ function Layout() {
             <Route path="/favoritos" element={<Favorites />} />
             <Route path="/cuenta" element={<Account />} />
             <Route path="/cotizador" element={<Cotizador />} />
+            <Route path="/pedido/:token" element={<OrderStatus />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
