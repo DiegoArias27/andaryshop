@@ -10,7 +10,7 @@ interface Flake {
   opacity: number
 }
 
-const FLAKE_COUNT = 12
+const FLAKE_COUNT = 7
 
 function generateFlakes(): Flake[] {
   return Array.from({ length: FLAKE_COUNT }, (_, id) => ({

@@ -47,9 +47,24 @@ export function CatalogFiltersProvider({ children }: { children: ReactNode }) {
           // Otherwise this size comes right back next time — sizeByCategory
           // (the saved "para mayor experiencia" preference) is what a fresh
           // filter hydrates from, and just filtering this list never touches it.
-          const remaining = Object.fromEntries(Object.entries(sizeByCategory).filter(([, s]) => s !== size))
-          if (Object.keys(remaining).length !== Object.keys(sizeByCategory).length) {
-            replaceSizePreferences(remaining)
+          // Scoped to the one category being unchecked when known (the
+          // grouped Talla panel always passes it) — matching by size VALUE
+          // alone used to wipe every OTHER category saved at that same size
+          // too (e.g. unchecking "S" under Sudaderas also erased a
+          // completely separate "S" saved for Playeras).
+          if (categorySlug) {
+            if (sizeByCategory[categorySlug] === size) {
+              const { [categorySlug]: _removed, ...remaining } = sizeByCategory
+              replaceSizePreferences(remaining)
+            }
+          } else {
+            // No category to scope to (e.g. removing straight from an
+            // active-filter chip) — fall back to clearing every category
+            // saved at this size, same as before.
+            const remaining = Object.fromEntries(Object.entries(sizeByCategory).filter(([, s]) => s !== size))
+            if (Object.keys(remaining).length !== Object.keys(sizeByCategory).length) {
+              replaceSizePreferences(remaining)
+            }
           }
         } else if (categorySlug) {
           // Checking a size here is just as much a statement of preference
