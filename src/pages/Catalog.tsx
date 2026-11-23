@@ -1311,8 +1311,8 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
               <CloseIcon />
             </button>
           )}
-          <button className="icon-btn" onClick={closeMobileSearch} aria-label="Cerrar búsqueda">
-            <CloseIcon />
+          <button type="button" className="toolbar-glass__cancel" onClick={closeMobileSearch}>
+            Cancelar
           </button>
         </div>
         {activeChips.length > 0 && (

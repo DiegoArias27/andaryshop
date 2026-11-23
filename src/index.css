@@ -183,6 +183,49 @@ img {
   }
 }
 
+.santa-sleigh {
+  /* A fixed warm red, not --black/--white (same reasoning as .snowfall__flake
+     above) — plus a dark drop-shadow so the silhouette still reads against
+     a light background, where a plain warm tone alone would wash out. */
+  --santa-color: #c23b3b;
+  position: fixed;
+  top: 16%;
+  left: 0;
+  z-index: 15;
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 0;
+  filter: drop-shadow(0 2px 5px rgba(13, 13, 13, 0.35));
+  animation: santa-fly 95s linear infinite;
+  will-change: transform;
+}
+
+@keyframes santa-fly {
+  0% {
+    transform: translate(-30vw, 0);
+    opacity: 0;
+  }
+  3% {
+    opacity: 1;
+  }
+  9% {
+    transform: translate(15vw, -22px);
+  }
+  16% {
+    transform: translate(65vw, 12px);
+  }
+  22% {
+    transform: translate(125vw, -8px);
+    opacity: 1;
+  }
+  25%,
+  100% {
+    opacity: 0;
+    transform: translate(125vw, -8px);
+  }
+}
+
 .app-main {
   flex: 1;
   display: flex;
@@ -368,7 +411,11 @@ img {
 /* ---------- Category pills ---------- */
 
 .page--catalog .header {
-  position: static;
+  /* relative, not static — same "don't stick to the top" effect, but
+     static stops being a positioning context at all, which sent
+     .header__lights (position: absolute) off to anchor against some
+     ancestor way up the tree instead of this header's own bottom edge. */
+  position: relative;
 }
 
 .catalog-toolbar {
@@ -578,6 +625,25 @@ img {
 .toolbar-glass__clear svg {
   width: 14px;
   height: 14px;
+}
+
+/* Closes the whole mobile search bar — text instead of a second X next to
+   the clear button's own X, which read as two identical, unexplained
+   close buttons side by side. */
+.toolbar-glass__cancel {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--black);
+  padding: 2px 2px 2px 4px;
+  white-space: nowrap;
+}
+
+.toolbar-glass--search-onphoto .toolbar-glass__cancel {
+  color: var(--on-photo);
 }
 
 .toolbar-glass--search-desktop {
@@ -2334,8 +2400,8 @@ a.hero-banner__layout-el {
 }
 
 .product-card__add svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 .product-card__add--done {
@@ -2387,8 +2453,8 @@ a.hero-banner__layout-el {
   }
 
   .product-card__hover-add svg {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
   }
 
   .product-card:hover .product-card__hover-add {
@@ -4030,6 +4096,18 @@ a.hero-banner__layout-el {
 
 .profile-link:hover {
   border-color: var(--black);
+}
+
+.my-orders__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.my-orders__empty {
+  font-size: 16px;
+  color: var(--gray-600);
+  margin: 0;
 }
 
 .my-orders__list {

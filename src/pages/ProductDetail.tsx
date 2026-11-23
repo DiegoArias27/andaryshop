@@ -670,7 +670,11 @@ function ProductDetail({ slug }: { slug: string }) {
           </p>
         )}
         {activeVariant && activeVariant.stock > 0 && activeVariant.stock <= 5 && (
-          <p className="stock-status stock-status--low">¡Solo quedan {activeVariant.stock} unidades!</p>
+          <p className="stock-status stock-status--low">
+            {activeVariant.stock === 1
+              ? '¡Solo queda 1 unidad!'
+              : `¡Solo quedan ${activeVariant.stock} unidades!`}
+          </p>
         )}
 
         <div className="option-group">

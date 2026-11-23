@@ -11,7 +11,7 @@ import { useFavorites } from '../hooks/useFavorites'
 import { useSizePreference } from '../hooks/useSizePreference'
 import { useTheme } from '../hooks/useTheme'
 import type { ThemeMode } from '../context/theme-context'
-import { BackIcon, HeartIcon, CartIcon, SunIcon, MoonIcon, SystemIcon } from '../components/icons'
+import { BackIcon, HeartIcon, CartIcon, BagIcon, SunIcon, MoonIcon, SystemIcon } from '../components/icons'
 import TutorialChoiceModal from '../components/tour/TutorialChoiceModal'
 import AccountSkeleton from '../components/account/AccountSkeleton'
 
@@ -42,29 +42,37 @@ function MyOrdersSection() {
       .catch(() => setOrders([]))
   }, [])
 
-  if (!orders || orders.length === 0) return null
+  // Still loading — not shown yet at all, so there's no flash of the empty
+  // state before the real list (if any) arrives.
+  if (!orders) return null
 
   return (
     <div className="appearance-card">
-      <h3 className="appearance-card__title">Mis pedidos</h3>
-      <ul className="my-orders__list">
-        {orders.map((o) => (
-          <li key={o.id}>
-            <Link to={`/pedido/${o.token}`} className="my-orders__item">
-              <div className="my-orders__item-info">
-                <span className="my-orders__item-folio">Pedido #{o.id}</span>
-                <span className="my-orders__item-meta">
-                  {formatOrderDate(o.createdAt)} · {o.items.reduce((sum, i) => sum + i.quantity, 0)} artículo(s) ·{' '}
-                  {formatPrice(o.total)}
+      <h3 className="appearance-card__title my-orders__title">
+        <BagIcon width={18} height={18} /> Mis pedidos
+      </h3>
+      {orders.length === 0 ? (
+        <p className="my-orders__empty">Aún no has hecho ningún pedido. Cuando hagas uno, aparecerá aquí.</p>
+      ) : (
+        <ul className="my-orders__list">
+          {orders.map((o) => (
+            <li key={o.id}>
+              <Link to={`/pedido/${o.token}`} className="my-orders__item">
+                <div className="my-orders__item-info">
+                  <span className="my-orders__item-folio">Pedido #{o.id}</span>
+                  <span className="my-orders__item-meta">
+                    {formatOrderDate(o.createdAt)} · {o.items.reduce((sum, i) => sum + i.quantity, 0)} artículo(s) ·{' '}
+                    {formatPrice(o.total)}
+                  </span>
+                </div>
+                <span className={`my-orders__item-status my-orders__item-status--${o.status}`}>
+                  {ORDER_STATUS_LABELS[o.status]}
                 </span>
-              </div>
-              <span className={`my-orders__item-status my-orders__item-status--${o.status}`}>
-                {ORDER_STATUS_LABELS[o.status]}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

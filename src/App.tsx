@@ -14,6 +14,7 @@ import Footer from './components/layout/Footer'
 import ScrollToTopButton from './components/layout/ScrollToTopButton'
 import ScrollToTopOnNavigate from './components/layout/ScrollToTopOnNavigate'
 import Snowfall from './components/layout/Snowfall'
+import SantaSleigh from './components/layout/SantaSleigh'
 import CartBubble from './components/cart/CartBubble'
 import CartDrawer from './components/cart/CartDrawer'
 import CotizadorBubble from './components/product/CotizadorBubble'
@@ -42,6 +43,7 @@ function Layout() {
   return (
     <div className="app-shell">
       <Snowfall />
+      <SantaSleigh />
       <ScrollToTopOnNavigate />
       <main className={hideBottomNav ? 'app-main app-main--full' : 'app-main'}>
         <div className="route-content">
