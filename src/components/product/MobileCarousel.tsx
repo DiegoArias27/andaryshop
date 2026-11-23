@@ -1,4 +1,5 @@
 import { useState, type UIEvent } from 'react'
+import PinchZoomImage from './PinchZoomImage'
 
 interface MobileCarouselProps {
   images: string[]
@@ -23,7 +24,7 @@ export default function MobileCarousel({ images, alt }: MobileCarouselProps) {
       <div className="mobile-carousel__track" onScroll={handleScroll}>
         {images.map((url, index) => (
           <div className="mobile-carousel__slide" key={url + index}>
-            <img src={url} alt={index === 0 ? alt : ''} />
+            <PinchZoomImage src={url} alt={index === 0 ? alt : ''} />
           </div>
         ))}
       </div>

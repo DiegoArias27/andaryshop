@@ -184,10 +184,6 @@ img {
 }
 
 .santa-sleigh {
-  /* A fixed warm red, not --black/--white (same reasoning as .snowfall__flake
-     above) — plus a dark drop-shadow so the silhouette still reads against
-     a light background, where a plain warm tone alone would wash out. */
-  --santa-color: #c23b3b;
   position: fixed;
   top: 16%;
   left: 0;
@@ -196,9 +192,55 @@ img {
   border: none;
   padding: 0;
   line-height: 0;
+  /* A dark drop-shadow so the now fully-colored silhouette still pops
+     against a light background, instead of just the icy flat shapes. */
   filter: drop-shadow(0 2px 5px rgba(13, 13, 13, 0.35));
-  animation: santa-fly 95s linear infinite;
+  animation: santa-fly 95s ease-in-out infinite;
   will-change: transform;
+}
+
+/* vw-based distance covers far more real pixels on a wide desktop screen
+   than on a phone in the same fixed animation-duration, which read as
+   "flies by way too fast" on desktop — a longer duration there keeps the
+   pace closer to mobile's instead of scaling with viewport width. */
+@media (min-width: 1024px) {
+  .santa-sleigh {
+    animation-duration: 220s;
+  }
+}
+
+.santa-sleigh__reindeer,
+.santa-sleigh__rig {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.santa-sleigh__reindeer {
+  animation: reindeer-bob 0.55s ease-in-out infinite;
+}
+
+.santa-sleigh__rig {
+  animation: sleigh-rock 2.4s ease-in-out infinite;
+}
+
+@keyframes reindeer-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-3deg);
+  }
+}
+
+@keyframes sleigh-rock {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
 }
 
 @keyframes santa-fly {
@@ -212,8 +254,14 @@ img {
   9% {
     transform: translate(15vw, -22px);
   }
+  13% {
+    transform: translate(38vw, 2px);
+  }
   16% {
     transform: translate(65vw, 12px);
+  }
+  19% {
+    transform: translate(92vw, -4px);
   }
   22% {
     transform: translate(125vw, -8px);
@@ -2780,10 +2828,26 @@ a.hero-banner__layout-el {
   background: var(--gray-100);
 }
 
-.mobile-carousel__slide img {
+.pinch-zoom {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Deliberately left at the default (auto), not pan-x/pan-y — those would
+     block the native gesture they don't name at the touch-action level
+     before JS even runs, which would kill either the carousel's own
+     horizontal swipe or vertical page scroll through the photo. The
+     touchmove listener in PinchZoomImage (needs to be non-passive to call
+     preventDefault, which a plain CSS touch-action can't do conditionally)
+     is what scopes the override to just a real pinch or an already-zoomed
+     drag, leaving a plain single-finger touch untouched either way. */
+}
+
+.pinch-zoom__img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform-origin: center;
+  will-change: transform;
 }
 
 .mobile-carousel__dots {
