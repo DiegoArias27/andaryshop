@@ -384,7 +384,7 @@ function ProductDetail({ slug }: { slug: string }) {
       goToWhatsapp(
         whatsappTab,
         buildWhatsappNotifyUrl(
-          { name: product.name, size: activeVariant.size, colorName: activeVariant.color_name, slug: product.slug },
+          { name: product.name, size: activeVariant.size, colorName: activeVariant.color_name },
           order
         )
       )

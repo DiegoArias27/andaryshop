@@ -41,19 +41,19 @@ export interface RecordedOrder {
 // Prices are intentionally left out of the message: it's plain text the
 // customer can edit before sending, so it must never be treated as a
 // trustworthy price quote. Totals are confirmed by the seller over chat.
-// wa.me links can only pre-fill text, never attach an image — a product
-// link is the closest practical substitute: the seller taps it and sees
-// the actual photo (and everything else about the item) on the site.
+// Used to also link each line to its own /producto/:slug (wa.me can only
+// pre-fill text, never attach a photo) — replaced by the one order-level
+// link below, which now shows every item with its photo on one page
+// instead of a link per line cluttering a multi-item message.
 // `order` (from recordOrder below) lets the seller match this exact chat to
 // the right row in Pedidos — without its id, two customers ordering the
 // same thing look identical in the admin panel. Called "pedido #" in the
 // message itself (not "folio") since that's the term a customer actually
-// recognizes. Its token builds a link the customer can reopen later (or
-// share back with the seller) to see this exact order's status, without
-// needing an account.
+// recognizes. Its token builds the one link in the message: the customer
+// can reopen it later (or share it back with the seller) to see this exact
+// order's status, without needing an account.
 export function buildWhatsappOrderUrl(items: CartItem[], notes: string, order?: RecordedOrder | null): string {
   const phone = import.meta.env.VITE_WHATSAPP_NUMBER
-  const origin = window.location.origin
 
   const lines = [
     order ? `Hola! Quiero hacer el pedido #${order.id} en ANDARY SHOP:` : 'Hola! Quiero hacer un pedido en ANDARY SHOP:',
@@ -61,8 +61,7 @@ export function buildWhatsappOrderUrl(items: CartItem[], notes: string, order?: 
     ...items.map(
       (item) =>
         `• ${item.name} — Talla ${item.size}, Color ${item.colorName} x${item.quantity}` +
-        (item.preorder ? ' (⚠ agotado — ¿me confirman fecha de disponibilidad?)' : '') +
-        `\n  ${origin}/producto/${item.slug}`
+        (item.preorder ? ' (⚠ agotado — ¿me confirman fecha de disponibilidad?)' : '')
     ),
   ]
 
@@ -71,7 +70,7 @@ export function buildWhatsappOrderUrl(items: CartItem[], notes: string, order?: 
   }
 
   if (order) {
-    lines.push('', `Para ver el estado de tu pedido: ${origin}/pedido/${order.token}`)
+    lines.push('', `Para ver el estado de tu pedido: ${window.location.origin}/pedido/${order.token}`)
   }
 
   const text = encodeURIComponent(lines.join('\n'))
@@ -139,11 +138,10 @@ export async function recordOrder(
  * there too, tagged "Aviso de disponibilidad" instead of looking like a
  * regular pending sale. */
 export function buildWhatsappNotifyUrl(
-  item: { name: string; size: string; colorName: string; slug: string },
+  item: { name: string; size: string; colorName: string },
   order?: RecordedOrder | null
 ): string {
   const phone = import.meta.env.VITE_WHATSAPP_NUMBER
-  const origin = window.location.origin
 
   const lines = [
     order
@@ -151,11 +149,10 @@ export function buildWhatsappNotifyUrl(
       : 'Hola! ¿Me pueden avisar cuando vuelva a haber stock de este producto?',
     '',
     `• ${item.name} — Talla ${item.size}, Color ${item.colorName}`,
-    `  ${origin}/producto/${item.slug}`,
   ]
 
   if (order) {
-    lines.push('', `Para ver el estado de tu aviso: ${origin}/pedido/${order.token}`)
+    lines.push('', `Para ver el estado de tu aviso: ${window.location.origin}/pedido/${order.token}`)
   }
 
   const text = encodeURIComponent(lines.join('\n'))
