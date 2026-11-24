@@ -180,6 +180,23 @@ function relevantCategorySlugs(
  * combo down to just what's still missing while actively building one),
  * this is for classifying collections in a general listing, e.g. the
  * Paquetes page's Playeras/Sudaderas/Playeras + Sudaderas filter. */
+/** Read once (lazy useState initializer) — the saved search term + page for
+ * this section (see searchStateKey), so navigating to a product from a
+ * search result and coming back restores the exact same search instead of
+ * landing back on the unfiltered listing. */
+function loadSearchState(key: string): { term: string; page: number } {
+  try {
+    const raw: unknown = JSON.parse(sessionStorage.getItem(key) ?? '{}')
+    const obj = raw && typeof raw === 'object' ? (raw as { term?: unknown; page?: unknown }) : {}
+    return {
+      term: typeof obj.term === 'string' ? obj.term : '',
+      page: typeof obj.page === 'number' && Number.isFinite(obj.page) ? obj.page : 1,
+    }
+  } catch {
+    return { term: '', page: 1 }
+  }
+}
+
 function allCategorySlugsForCollection(collection: Collection, categories: Category[]): Set<string> {
   if (collection.pricing_mode === 'wholesale') {
     if (collection.wholesale_category_id == null) return new Set()
@@ -910,6 +927,7 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // where a product was opened from never restores the wrong scroll spot.
   const visibleCountKey = `andary-catalog-visible-${packagesOnly ? 'paquetes' : (category ?? 'all')}`
   const scrollKey = `${visibleCountKey}-scrollY`
+  const searchStateKey = `${visibleCountKey}-search`
 
   // The toolbar floats over the hero banner (see showHero below) via a
   // negative margin-bottom equal to its own rendered height, so the next
@@ -1033,7 +1051,12 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // packagesOnly toggles (this component remounts on that transition — see
   // its `key` in the exported Catalog below — so this is never stale).
   const [pageLayout, setPageLayout] = useState<PageLayoutEntry[] | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
+  // Persisted (not plain useState('')) — otherwise searching, opening a
+  // result, and coming back lost the search term entirely on remount,
+  // dumping the shopper back into the unfiltered listing instead of
+  // their results (and made the saved scroll position below meaningless,
+  // since it was restored against a completely different list).
+  const [searchTerm, setSearchTerm] = useState(() => loadSearchState(searchStateKey).term)
   const [searchParams, setSearchParams] = useSearchParams()
   const mobileSearchOpen = searchParams.get('buscar') === '1'
   // Registered so BottomNav's "Buscar" button (an unrelated component) can
@@ -1050,7 +1073,15 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
     if (mobileSearchOpen) mobileSearchInputRef.current?.focus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mobileSearchOpen])
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(() => loadSearchState(searchStateKey).page)
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(searchStateKey, JSON.stringify({ term: searchTerm, page }))
+    } catch {
+      // ignore
+    }
+  }, [searchStateKey, searchTerm, page])
   // How many cards the home page's "Todos los productos" section shows —
   // grows by SECTION_PREVIEW_CAP each "Ver más" click instead of navigating
   // away, since there's no single category/collection this mixed grid maps
