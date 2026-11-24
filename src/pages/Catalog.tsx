@@ -20,7 +20,6 @@ import CategoryPills from '../components/product/CategoryPills'
 import FilterMenu from '../components/product/FilterMenu'
 import SizePreferenceModal from '../components/product/SizePreferenceModal'
 import ProductCard from '../components/product/ProductCard'
-import Pagination from '../components/product/Pagination'
 import { CloseIcon, SearchIcon, SlidersIcon } from '../components/icons'
 import ProductGridSkeleton from '../components/product/ProductGridSkeleton'
 import { useCart } from '../hooks/useCart'
@@ -28,7 +27,6 @@ import { usePackageBuilder } from '../hooks/usePackageBuilder'
 import { useSizePreference } from '../hooks/useSizePreference'
 import { useCatalogFilters } from '../hooks/useCatalogFilters'
 import { useToast } from '../hooks/useToast'
-import { useMediaQuery } from '../hooks/useMediaQuery'
 import { toCardData } from '../utils/productCard'
 import { productThumb } from '../utils/images'
 import { formatPrice, plaquePrice } from '../utils/currency'
@@ -47,8 +45,6 @@ function resolveAutoSize(filterSize: string | null, product: Product, sizeByCate
   return product.category_slug ? (sizeByCategory[product.category_slug] ?? null) : null
 }
 
-const PAGE_SIZE_DESKTOP = 24
-const PAGE_SIZE_MOBILE = 8
 const SECTION_PREVIEW_CAP = 11
 
 /** How many cards a "Ver más" grid shows, persisted in sessionStorage under
@@ -184,16 +180,15 @@ function relevantCategorySlugs(
  * this section (see searchStateKey), so navigating to a product from a
  * search result and coming back restores the exact same search instead of
  * landing back on the unfiltered listing. */
-function loadSearchState(key: string): { term: string; page: number } {
+function loadSearchState(key: string): { term: string } {
   try {
     const raw: unknown = JSON.parse(sessionStorage.getItem(key) ?? '{}')
-    const obj = raw && typeof raw === 'object' ? (raw as { term?: unknown; page?: unknown }) : {}
+    const obj = raw && typeof raw === 'object' ? (raw as { term?: unknown }) : {}
     return {
       term: typeof obj.term === 'string' ? obj.term : '',
-      page: typeof obj.page === 'number' && Number.isFinite(obj.page) ? obj.page : 1,
     }
   } catch {
-    return { term: '', page: 1 }
+    return { term: '' }
   }
 }
 
@@ -1073,15 +1068,13 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
     if (mobileSearchOpen) mobileSearchInputRef.current?.focus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mobileSearchOpen])
-  const [page, setPage] = useState(() => loadSearchState(searchStateKey).page)
-
   useEffect(() => {
     try {
-      sessionStorage.setItem(searchStateKey, JSON.stringify({ term: searchTerm, page }))
+      sessionStorage.setItem(searchStateKey, JSON.stringify({ term: searchTerm }))
     } catch {
       // ignore
     }
-  }, [searchStateKey, searchTerm, page])
+  }, [searchStateKey, searchTerm])
   // How many cards the home page's "Todos los productos" section shows —
   // grows by SECTION_PREVIEW_CAP each "Ver más" click instead of navigating
   // away, since there's no single category/collection this mixed grid maps
@@ -1090,7 +1083,19 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // A single category's own listing — "Ver más" grows this instead of
   // paging through numbered pages, same as "Todos los productos" above.
   const [categoryVisible, setCategoryVisible] = usePersistedVisibleCount(`${visibleCountKey}-cat`)
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  // Search results — same "Ver más" idea, instead of the numbered
+  // Pagination this used to show (which also never fully restored scroll on
+  // the way back from a result, unlike every other section here).
+  const [searchVisible, setSearchVisible] = usePersistedVisibleCount(`${visibleCountKey}-search-visible`)
+  // A real query change (not this same term being restored on mount) starts
+  // the "Ver más" count fresh — otherwise a previously-grown count from an
+  // unrelated search would carry straight over into the next one.
+  const searchTermRef = useRef(searchTerm)
+  useEffect(() => {
+    if (searchTermRef.current === searchTerm) return
+    searchTermRef.current = searchTerm
+    setSearchVisible(SECTION_PREVIEW_CAP)
+  }, [searchTerm, setSearchVisible])
   const { activeCollection, activePart, isInActiveCollection, comboPartProgress, packagesFor } = usePackageBuilder()
   // A single active Talla filter counts as an explicit size choice already
   // made — quick-add only still needs a color tap after that.
@@ -1261,28 +1266,8 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   // showing an empty/irrelevant grid.
   const categoryAppliesToPackage = !activeCollection || !category || products.some((p) => isInActiveCollection(p))
 
-  function handlePageChange(next: number) {
-    setPage(next)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const pageSize = isDesktop ? PAGE_SIZE_DESKTOP : PAGE_SIZE_MOBILE
-  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / pageSize))
-  const currentPage = Math.min(page, pageCount)
-  const pagedProducts = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-
-  // toggleSize/toggleBrand/clearFilters themselves live in
-  // CatalogFiltersContext now (so the filter survives this component's own
-  // remounts) — this page's own concern is just resetting back to page 1
-  // whenever the filter actually changes.
-  useEffect(() => {
-    setPage(1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSizes, selectedBrands])
-
   function handleSearchTermChange(value: string) {
     setSearchTerm(value)
-    setPage(1)
   }
 
   const activeChips = [
@@ -1459,11 +1444,19 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
               ) : (
                 <>
                   <div className="product-grid">
-                    {pagedProducts.map((p) => (
+                    {filteredProducts.slice(0, searchVisible).map((p) => (
                       <ProductCard key={p.id} product={toCardData(p)} rawProduct={p} autoSize={resolveAutoSize(filterSize, p, sizeByCategory)} />
                     ))}
                   </div>
-                  <Pagination page={currentPage} pageCount={pageCount} onChange={handlePageChange} />
+                  {filteredProducts.length > searchVisible && (
+                    <button
+                      type="button"
+                      className="see-more-btn"
+                      onClick={() => setSearchVisible((v) => v + SECTION_PREVIEW_CAP)}
+                    >
+                      Ver más
+                    </button>
+                  )}
                 </>
               )}
             </section>
