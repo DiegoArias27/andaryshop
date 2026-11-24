@@ -947,6 +947,12 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // True while the restore effect below is actively re-applying a saved
+  // scroll position — the save-listener uses this to ignore the 'scroll'
+  // events scrollTo() itself fires, so a brief clamp (restoring before the
+  // grid's reached its full height) never overwrites the correct saved
+  // value with that transient, too-short one.
+  const restoringScrollRef = useRef(false)
 
   // Gated on !loading — ProductGridSkeleton is a different (usually
   // shorter) height than the real grid, so the browser can clamp the
@@ -958,6 +964,7 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   useEffect(() => {
     if (loading) return
     function saveScroll() {
+      if (restoringScrollRef.current) return
       try {
         sessionStorage.setItem(scrollKey, String(window.scrollY))
       } catch {
@@ -1012,20 +1019,42 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
       fontsReady = true
     })
 
+    // Any real interaction (a manual scroll, or a tap/click — e.g. "Ver
+    // más" right after arriving) means the shopper has taken over; forcing
+    // our own scrollTo on the next tick after that would fight whatever
+    // THEY just did and look like the page randomly refusing to scroll.
+    let interrupted = false
+    function interrupt() {
+      interrupted = true
+      restoringScrollRef.current = false
+    }
+    window.addEventListener('wheel', interrupt, { passive: true })
+    window.addEventListener('touchstart', interrupt, { passive: true })
+    window.addEventListener('pointerdown', interrupt, { passive: true })
+
+    restoringScrollRef.current = true
+
     function tick() {
-      if (cancelled) return
+      if (cancelled || interrupted) return
       window.scrollTo(0, y)
       const height = document.body.scrollHeight
       stableChecks = height === lastHeight ? stableChecks + 1 : 0
       lastHeight = height
       elapsedMs += CHECK_MS
-      if ((stableChecks >= STABLE_CHECKS_NEEDED && fontsReady) || elapsedMs >= MAX_MS) return
+      if ((stableChecks >= STABLE_CHECKS_NEEDED && fontsReady) || elapsedMs >= MAX_MS) {
+        restoringScrollRef.current = false
+        return
+      }
       timeoutId = window.setTimeout(tick, CHECK_MS)
     }
     tick()
     return () => {
       cancelled = true
+      restoringScrollRef.current = false
       window.clearTimeout(timeoutId)
+      window.removeEventListener('wheel', interrupt)
+      window.removeEventListener('touchstart', interrupt)
+      window.removeEventListener('pointerdown', interrupt)
     }
   }, [navigationType, loading, scrollKey])
   const { sizeByCategory } = useSizePreference()
