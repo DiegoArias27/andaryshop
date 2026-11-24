@@ -129,6 +129,7 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
     function onTouchMove(e: TouchEvent) {
       if (e.touches.length === 2) {
         e.preventDefault()
+        e.stopPropagation()
         const dist = distance(e.touches[0], e.touches[1])
         const next = (dist / s.pinchStartDist) * s.pinchStartScale
         s.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next))
@@ -136,6 +137,7 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
         apply()
       } else if (e.touches.length === 1 && s.scale > 1.01) {
         e.preventDefault()
+        e.stopPropagation()
         s.x = s.panOriginX + (e.touches[0].clientX - s.panStartX)
         s.y = s.panOriginY + (e.touches[0].clientY - s.panStartY)
         clampPan()
@@ -149,11 +151,12 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
       // Double-tap to toggle zoom — only for a clean single-finger tap
       // (never part of a pinch) that barely moved (a pan/drag doesn't
       // count as a tap, even if it ends quickly).
+      const wasZoomed = s.scale > 1.01
       const changed = e.changedTouches[0]
       const moved = changed ? Math.hypot(changed.clientX - s.tapStartX, changed.clientY - s.tapStartY) : Infinity
       const wasTap = !s.gestureHadMultiTouch && moved <= TAP_MOVE_TOLERANCE
 
-      if (wasTap) {
+      if (wasTap || wasZoomed || s.gestureHadMultiTouch) {
         // Stops the browser from ALSO synthesizing its own click/dblclick
         // from this same touch — without this, a FAST double-tap could
         // toggle the zoom here and then, a beat later, toggle it right
@@ -161,7 +164,12 @@ export default function PinchZoomImage({ src, alt }: PinchZoomImageProps) {
         // second time. A slow double-tap didn't trigger that synthesis
         // (browsers only do it within their own short window), which is
         // exactly why it worked "if I do it slowly" but not fast.
+        // stopPropagation too, so a host that also tracks touches on an
+        // ancestor doesn't read a pinch or a pan-while-zoomed as its own
+        // gesture (e.g. a swipe) — a plain single-finger swipe at 1x is
+        // the one case left to bubble up untouched, on purpose.
         e.preventDefault()
+        e.stopPropagation()
       }
 
       const now = Date.now()
