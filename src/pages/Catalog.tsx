@@ -935,7 +935,15 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Gated on !loading — ProductGridSkeleton is a different (usually
+  // shorter) height than the real grid, so the browser can clamp the
+  // scroll position down to fit it right when this section first mounts.
+  // Recording scroll unconditionally meant that clamp sometimes overwrote
+  // the correct saved position (from just before opening a product) with
+  // that shorter one, before the restore effect below ever got to read
+  // it — which one won was a race against how long the fetch took.
   useEffect(() => {
+    if (loading) return
     function saveScroll() {
       try {
         sessionStorage.setItem(scrollKey, String(window.scrollY))
@@ -945,15 +953,19 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
     }
     window.addEventListener('scroll', saveScroll, { passive: true })
     return () => window.removeEventListener('scroll', saveScroll)
-  }, [scrollKey])
+  }, [scrollKey, loading])
 
   // Restoring scroll on a POP navigation (see the scroll-to-top effect
   // above, which deliberately skips itself for that case) has to wait for
   // `loading` to actually finish — the grid is still empty/skeleton-sized
   // right when this mounts, so scrolling immediately would just land
-  // wherever the much-shorter loading page happens to end, with nothing
-  // to correct it afterward (browsers mostly don't re-apply a scroll
-  // restoration after a later layout change in an SPA).
+  // wherever the much-shorter loading page happens to end. Keeps
+  // reapplying after that too, until the page's height has actually
+  // stopped changing for a few checks in a row (not just a fixed handful
+  // of frames) — on the home view specifically, the hero banner's own
+  // image can still be loading in and shifting everything below it well
+  // after the grid itself first mounts, so a short, fixed-attempt retry
+  // could still land short of the real target.
   useEffect(() => {
     if (navigationType !== 'POP' || loading) return
     let raw: string | null = null
@@ -964,8 +976,31 @@ function ProductsSection({ category, categoryName, categories, onSelectCategory,
     }
     const y = raw ? Number(raw) : NaN
     if (!Number.isFinite(y)) return
-    const frame = requestAnimationFrame(() => window.scrollTo(0, y))
-    return () => cancelAnimationFrame(frame)
+
+    let cancelled = false
+    let timeoutId = 0
+    let lastHeight = -1
+    let stableChecks = 0
+    let elapsedMs = 0
+    const CHECK_MS = 80
+    const MAX_MS = 2000
+    const STABLE_CHECKS_NEEDED = 3
+
+    function tick() {
+      if (cancelled) return
+      window.scrollTo(0, y)
+      const height = document.body.scrollHeight
+      stableChecks = height === lastHeight ? stableChecks + 1 : 0
+      lastHeight = height
+      elapsedMs += CHECK_MS
+      if (stableChecks >= STABLE_CHECKS_NEEDED || elapsedMs >= MAX_MS) return
+      timeoutId = window.setTimeout(tick, CHECK_MS)
+    }
+    tick()
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
   }, [navigationType, loading, scrollKey])
   const { sizeByCategory } = useSizePreference()
   // Lifted into a context so it survives this component's own remounts

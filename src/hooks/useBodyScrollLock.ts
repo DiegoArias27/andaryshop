@@ -8,19 +8,38 @@ import { useEffect } from 'react'
 export function useBodyScrollLock(active: boolean) {
   useEffect(() => {
     if (!active) return
+    const scrollY = window.scrollY
+    const html = document.documentElement
+    const body = document.body
+    const previousHtmlOverflow = html.style.overflow
+    const previousBodyOverflow = body.style.overflow
+    const previousBodyPosition = body.style.position
+    const previousBodyTop = body.style.top
+    const previousBodyWidth = body.style.width
+
     // Neither html nor body has its own height/overflow set (see
     // index.css), so the page's scrollable box is really the viewport,
     // which the browser derives from <html>'s overflow — setting this on
-    // body alone doesn't reliably stop it. Both together is the standard,
-    // cross-browser-safe way to lock page scroll.
-    const html = document.documentElement
-    const previousHtml = html.style.overflow
-    const previousBody = document.body.style.overflow
+    // body alone doesn't reliably stop it.
     html.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    // iOS Safari specifically still lets a touch drag scroll/rubber-band
+    // the page behind an overlay even with overflow:hidden set — pinning
+    // the body in place with position:fixed (the standard cross-browser
+    // workaround for this) is what actually stops it there. Pins at the
+    // CURRENT scroll position (via a negative top) so nothing visibly
+    // jumps to 0 the moment the drawer opens; restored on close below.
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.width = '100%'
+
     return () => {
-      html.style.overflow = previousHtml
-      document.body.style.overflow = previousBody
+      html.style.overflow = previousHtmlOverflow
+      body.style.overflow = previousBodyOverflow
+      body.style.position = previousBodyPosition
+      body.style.top = previousBodyTop
+      body.style.width = previousBodyWidth
+      window.scrollTo(0, scrollY)
     }
   }, [active])
 }

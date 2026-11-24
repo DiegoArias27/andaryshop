@@ -41,7 +41,13 @@ function Reindeer({ x, delay }: { x: number; delay: number }) {
 }
 
 // Real seconds the speed-up holds, and how much faster than normal.
-const BOOST_RATE = 10
+// Applied to every animation in the sleigh (flight + each reindeer's own
+// gallop/bob + the sleigh's rock), not just the flight — speeding up the
+// translation alone while the legs kept bobbing at their normal slow
+// pace looked like it was sliding/gliding rather than running faster.
+// 10x read as frantic vibrating on those once they were included, so this
+// also came down to something closer to "running hard" than "glitching."
+const BOOST_RATE = 4
 const BOOST_HOLD_MS = 1200
 
 export default function SantaSleigh() {
@@ -66,12 +72,15 @@ export default function SantaSleigh() {
     // visual progress, so the sleigh could reappear stuck mid-flight).
     // playbackRate has no such jump: it speeds up smoothly from wherever
     // the sleigh already is and, once reset, keeps going from wherever
-    // THAT left it — never a discontinuity.
-    const [anim] = e.currentTarget.getAnimations?.() ?? []
-    if (!anim) return
-    anim.playbackRate = BOOST_RATE
+    // THAT left it — never a discontinuity. { subtree: true } is what
+    // reaches the reindeer/rig's own animations too, not just the
+    // flight's — getAnimations() alone only returns animations declared
+    // directly on this button.
+    const anims = e.currentTarget.getAnimations?.({ subtree: true }) ?? []
+    if (anims.length === 0) return
+    for (const anim of anims) anim.playbackRate = BOOST_RATE
     window.setTimeout(() => {
-      anim.playbackRate = 1
+      for (const anim of anims) anim.playbackRate = 1
     }, BOOST_HOLD_MS)
   }
 
